@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { useCanon } from "@/store";
+import { useSenpai } from "@/store";
 import { PlusIcon } from "@/components/bits";
 import { avg, resolvePerson } from "@/lib/derive";
 import { PLATFORM_LIST, PLATFORM_META } from "@/lib/theme";
 
 /* eslint-disable @next/next/no-img-element */
 export function Platforms() {
-  const { acc, data, setScreen, openDetail } = useCanon();
+  const { acc, data, setScreen, openDetail } = useSenpai();
   if (!data) return null;
 
   const sections = PLATFORM_LIST.map((p) => {

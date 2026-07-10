@@ -1,4 +1,4 @@
-/* Canon PWA service worker.
+/* Senpai PWA service worker.
  * Strategies:
  *  - navigations:            network-first, fallback to cached shell
  *  - /api/data:              network-first, fallback to last snapshot (offline read)
@@ -7,7 +7,7 @@
  *  - static assets (_next/static, fonts, icons): cache-first
  *  - other API POSTs:        network only (never cached)
  */
-const VERSION = "canon-v1";
+const VERSION = "senpai-v1";
 const SHELL_CACHE = VERSION + "-shell";
 const DATA_CACHE = VERSION + "-data";
 const IMG_CACHE = VERSION + "-img";

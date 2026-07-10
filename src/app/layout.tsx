@@ -15,14 +15,14 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Canon — the shared anime journal",
+  title: "Senpai — the shared anime journal",
   description:
     "Log anime with your crew, rate them, and watch the shared ranking take shape.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Canon",
+    title: "Senpai",
   },
   icons: {
     icon: "/icon.svg",

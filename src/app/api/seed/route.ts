@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { AnimeModel, EmoteModel, ProfileModel } from "@/models";
+import { AnimeModel, EmoteModel, ProfileModel, WatchlistModel } from "@/models";
 import { SEED_PROFILES, SEED_SHOWS, c1c2 } from "@/lib/seed-data";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,7 @@ export async function POST() {
       ProfileModel.deleteMany({}),
       AnimeModel.deleteMany({}),
       EmoteModel.deleteMany({}),
+      WatchlistModel.deleteMany({}),
     ]);
 
     // profiles -> map seed key to real _id

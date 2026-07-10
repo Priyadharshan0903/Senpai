@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { useCanon } from "@/store";
+import { useSenpai } from "@/store";
 import { createProfile } from "@/lib/api";
 import { avatarUrl } from "@/lib/avatar";
 
 /* eslint-disable @next/next/no-img-element */
 export function AddProfile() {
-  const { acc, switchProfile, enterApp, refresh, flash } = useCanon();
+  const { acc, switchProfile, enterApp, refresh, flash } = useSenpai();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 

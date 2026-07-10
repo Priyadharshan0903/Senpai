@@ -35,7 +35,7 @@ export function Avatar({
   );
 }
 
-/** The Canon "books + star" logo mark. Scales via `size`. */
+/** The Senpai "books + star" logo mark. Scales via `size`. */
 export function LogoMark({ acc, size = 76 }: { acc: string; size?: number }) {
   const s = size / 76; // base is 76
   return (

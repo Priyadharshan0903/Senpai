@@ -1,12 +1,12 @@
 "use client";
 
 import React from "react";
-import { useCanon } from "@/store";
+import { useSenpai } from "@/store";
 import { LogoMark } from "@/components/bits";
 
 /* eslint-disable @next/next/no-img-element */
 export function Picker() {
-  const { acc, data, selectProfile, openAddProfile } = useCanon();
+  const { acc, data, selectProfile, openAddProfile } = useSenpai();
   const profiles = data?.profiles || [];
 
   return (
@@ -39,7 +39,7 @@ export function Picker() {
             marginTop: 16,
           }}
         >
-          Canon
+          Senpai
         </div>
         <div style={{ fontSize: 12.5, color: "#8a929e", marginTop: 4 }}>
           the shared anime journal

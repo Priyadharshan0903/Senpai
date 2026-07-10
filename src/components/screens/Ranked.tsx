@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { useCanon } from "@/store";
+import { useSenpai } from "@/store";
 import { PlusIcon } from "@/components/bits";
 import { avg, MOOD_META, moodBgOf } from "@/lib/derive";
 
 /* eslint-disable @next/next/no-img-element */
 export function Ranked() {
-  const { acc, data, setScreen, openDetail } = useCanon();
+  const { acc, data, setScreen, openDetail } = useSenpai();
   if (!data) return null;
 
   const ranked = [...data.entries].sort((a, b) => avg(b) - avg(a));

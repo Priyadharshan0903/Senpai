@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CanonProvider } from "@/store";
-import { CanonApp } from "@/components/CanonApp";
+import { SenpaiProvider } from "@/store";
+import { SenpaiApp } from "@/components/SenpaiApp";
 
 /**
  * Shell: on phone-sized viewports (or when installed as a PWA) the app fills
@@ -38,9 +38,9 @@ export default function Page() {
   if (!framed) {
     return (
       <div style={{ position: "fixed", inset: 0, background: "#0a0c0f" }}>
-        <CanonProvider>
-          <CanonApp />
-        </CanonProvider>
+        <SenpaiProvider>
+          <SenpaiApp />
+        </SenpaiProvider>
       </div>
     );
   }
@@ -94,9 +94,9 @@ export default function Page() {
             boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.06)",
           }}
         >
-          <CanonProvider>
-            <CanonApp />
-          </CanonProvider>
+          <SenpaiProvider>
+            <SenpaiApp />
+          </SenpaiProvider>
         </div>
       </div>
     </div>

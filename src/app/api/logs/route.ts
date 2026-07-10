@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { AnimeModel } from "@/models";
+import { AnimeModel, WatchlistModel } from "@/models";
 import { norm } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "missing required fields" }, { status: 400 });
     }
     await connectDB();
+
+    // Logging a show clears it from the logger's own watchlist (others keep theirs).
+    await WatchlistModel.deleteMany({ user: b.user, normTitle: norm(b.title) });
 
     const myWatch = {
       user: b.user,
@@ -87,6 +90,49 @@ export async function POST(req: NextRequest) {
       facts: [],
     });
     return NextResponse.json({ ok: true, id: String(created._id), created: true, title: created.title });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+interface EditBody {
+  animeId: string;
+  user: string;
+  rating?: number;
+  mood?: string;
+  platform?: string;
+  reflect?: string;
+  momentTitle?: string;
+  momentWhy?: string;
+  rewatch?: number;
+}
+
+// PATCH /api/logs — edit your own take on a show. The crew average re-derives
+// automatically since it's computed from the watches.
+export async function PATCH(req: NextRequest) {
+  try {
+    const b: EditBody = await req.json();
+    if (!b.animeId || !b.user) {
+      return NextResponse.json({ error: "missing animeId/user" }, { status: 400 });
+    }
+    await connectDB();
+    const doc = await AnimeModel.findById(b.animeId);
+    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
+    const watch = doc.watches.find((w: { user: string }) => w.user === b.user);
+    if (!watch) {
+      return NextResponse.json({ error: "you haven't logged this show" }, { status: 404 });
+    }
+    if (typeof b.rating === "number" && b.rating > 0) watch.rating = b.rating;
+    if (typeof b.mood === "string" && b.mood) watch.mood = b.mood;
+    if (typeof b.platform === "string" && b.platform) watch.platform = b.platform;
+    if (typeof b.reflect === "string") watch.reflect = b.reflect || "(no thoughts added)";
+    if (typeof b.momentTitle === "string") watch.momentTitle = b.momentTitle;
+    if (typeof b.momentWhy === "string") watch.momentWhy = b.momentWhy;
+    if (typeof b.rewatch === "number") watch.rewatch = Math.max(0, b.rewatch);
+    doc.markModified("watches");
+    await doc.save();
+    return NextResponse.json({ ok: true, id: String(doc._id) });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -1,4 +1,4 @@
-// Shared types for the Canon client + API. The `Entry` shape mirrors the
+// Shared types for the Senpai client + API. The `Entry` shape mirrors the
 // prototype's aggregated data model (anime + its watches + facts + emotes).
 
 export interface Profile {
@@ -46,10 +46,26 @@ export interface Entry {
   createdAt?: string;
 }
 
+/** A crew member's want-to-watch item (crew-visible). */
+export interface WatchlistItem {
+  id: string;
+  user: string; // profile id
+  title: string;
+  anilistId?: number | null;
+  cover: string;
+  year: string;
+  ep: string;
+  genres: string[];
+  c1: string;
+  c2: string;
+  entryId: string | null; // resolved Anime id if the crew already logged it
+}
+
 /** Full app snapshot returned by GET /api/data — client renders every view from this. */
 export interface AppData {
   profiles: Profile[];
   entries: Entry[];
+  watchlist: WatchlistItem[];
 }
 
 export interface AniMeta {

@@ -54,6 +54,26 @@ const AnimeSchema = new Schema(
   { timestamps: true }
 );
 
+// ---- Watchlist (a show someone wants to watch; crew-visible) ----
+// Snapshot fields are denormalized from the AniList search because most
+// watchlisted shows have no Anime doc yet (nobody has logged them).
+const WatchlistSchema = new Schema(
+  {
+    user: { type: String, required: true }, // profile id
+    title: { type: String, required: true },
+    normTitle: { type: String, required: true }, // for dedupe + auto-resolve on log
+    anilistId: { type: Number, default: null },
+    cover: { type: String, default: "" },
+    year: { type: String, default: "" },
+    ep: { type: String, default: "" },
+    genres: { type: [String], default: [] },
+    c1: { type: String, default: "#1a1e25" },
+    c2: { type: String, default: "#141821" },
+  },
+  { timestamps: true }
+);
+WatchlistSchema.index({ user: 1, normTitle: 1 }, { unique: true });
+
 // ---- Emote (a single user's reaction toggle) ----
 const EmoteSchema = new Schema(
   {
@@ -68,6 +88,12 @@ EmoteSchema.index({ anime: 1, user: 1, emoji: 1 }, { unique: true });
 export const ProfileModel = models.Profile || model("Profile", ProfileSchema);
 export const AnimeModel = models.Anime || model("Anime", AnimeSchema);
 export const EmoteModel = models.Emote || model("Emote", EmoteSchema);
+export const WatchlistModel =
+  models.Watchlist || model("Watchlist", WatchlistSchema);
+
+export type WatchlistDoc = mongoose.InferSchemaType<typeof WatchlistSchema> & {
+  _id: mongoose.Types.ObjectId;
+};
 
 export type AnimeDoc = mongoose.InferSchemaType<typeof AnimeSchema> & {
   _id: mongoose.Types.ObjectId;

@@ -15,7 +15,7 @@ import { ACCENT } from "@/lib/theme";
 export type Stage = "pick" | "add" | "app";
 export type Screen = "feed" | "ranked" | "platforms" | "add" | "profile";
 
-interface CanonCtx {
+interface SenpaiCtx {
   acc: string;
   data: AppData | null;
   loading: boolean;
@@ -26,6 +26,7 @@ interface CanonCtx {
   detailId: string | null;
   genreFilter: string;
   toast: string;
+  addPrefill: string | null;
 
   refresh: () => Promise<void>;
   selectProfile: (id: string) => void;
@@ -38,12 +39,15 @@ interface CanonCtx {
   setGenreFilter: (g: string) => void;
   flash: (m: string) => void;
   reactEmote: (animeId: string, emoji: string) => void;
+  /** Jump to the Add screen with a title pre-filled (auto-searches). */
+  openAddWith: (title: string) => void;
+  consumeAddPrefill: () => string | null;
 }
 
-const Ctx = createContext<CanonCtx | null>(null);
-const ME_KEY = "canon.me";
+const Ctx = createContext<SenpaiCtx | null>(null);
+const ME_KEY = "senpai.me";
 
-export function CanonProvider({ children }: { children: React.ReactNode }) {
+export function SenpaiProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +58,8 @@ export function CanonProvider({ children }: { children: React.ReactNode }) {
   const [genreFilter, setGenreFilter] = useState("All");
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addPrefillRef = useRef<string | null>(null);
+  const [addPrefill, setAddPrefill] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(ME_KEY) : null;
@@ -93,7 +99,7 @@ export function CanonProvider({ children }: { children: React.ReactNode }) {
     refresh();
   };
 
-  const value: CanonCtx = {
+  const value: SenpaiCtx = {
     acc: ACCENT,
     data,
     loading,
@@ -104,6 +110,7 @@ export function CanonProvider({ children }: { children: React.ReactNode }) {
     detailId,
     genreFilter,
     toast,
+    addPrefill,
     refresh,
     selectProfile: (id) => enterApp(id),
     openAddProfile: () => setStage("add"),
@@ -149,13 +156,25 @@ export function CanonProvider({ children }: { children: React.ReactNode }) {
         .then(() => refresh())
         .catch(() => refresh());
     },
+    openAddWith: (title) => {
+      addPrefillRef.current = title;
+      setAddPrefill(title);
+      setDetailId(null);
+      setScreenState("add");
+    },
+    consumeAddPrefill: () => {
+      const t = addPrefillRef.current;
+      addPrefillRef.current = null;
+      if (t) setAddPrefill(null);
+      return t;
+    },
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
-export function useCanon(): CanonCtx {
+export function useSenpai(): SenpaiCtx {
   const c = useContext(Ctx);
-  if (!c) throw new Error("useCanon must be used within CanonProvider");
+  if (!c) throw new Error("useSenpai must be used within SenpaiProvider");
   return c;
 }

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import { useCanon } from "@/store";
+import React, { useEffect, useState } from "react";
+import { useSenpai } from "@/store";
 import { CoverArt } from "@/components/CoverArt";
 import { StarPicker } from "@/components/bits";
-import { searchAnime, postLog, SearchResult } from "@/lib/api";
+import { searchAnime, postLog, addToWatchlist, SearchResult } from "@/lib/api";
 import { norm, MOOD_LIST, MOOD_META, PLATFORM_LIST, PLATFORM_META, GENRE_LIST } from "@/lib/theme";
 
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -14,7 +14,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 );
 
 export function Add() {
-  const { acc, data, me, setScreen, openDetail, refresh, flash } = useCanon();
+  const { acc, data, me, setScreen, openDetail, refresh, flash, consumeAddPrefill } = useSenpai();
 
   const [title, setTitle] = useState("");
   const [finding, setFinding] = useState(false);
@@ -32,8 +32,8 @@ export function Add() {
 
   const isDup = !!dupId;
 
-  const runSearch = async () => {
-    const t = title.trim();
+  const runSearch = async (term?: string) => {
+    const t = (term ?? title).trim();
     if (!t) return;
     const dup = data?.entries.find((e) => norm(e.title) === norm(t)) || null;
     setDupId(dup ? dup.id : null);
@@ -51,7 +51,7 @@ export function Add() {
           year: dup.year,
           ep: dup.ep,
           genres: dup.genres.slice(),
-          matchLabel: "ALREADY ON CANON",
+          matchLabel: "ALREADY ON SENPAI",
         });
         setTitle(dup.title);
         return;
@@ -66,9 +66,40 @@ export function Add() {
     }
   };
 
+  // Arriving from a watchlist tap: pre-fill the title and search immediately.
+  useEffect(() => {
+    const t = consumeAddPrefill();
+    if (t) {
+      setTitle(t);
+      runSearch(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const ready = !!found && rating > 0 && !!mood && !!platform && (isDup || genres.length > 0);
   const meta = [found?.year, found?.ep].filter(Boolean).join(" · ") || "metadata unavailable";
-  const matchLabel = isDup ? "ALREADY ON CANON" : found?.cover ? "ARTWORK FOUND" : "NO MATCH — DROP YOUR OWN";
+  const matchLabel = isDup ? "ALREADY ON SENPAI" : found?.cover ? "ARTWORK FOUND" : "NO MATCH — DROP YOUR OWN";
+
+  const saveForLater = async () => {
+    if (!me || !found) return;
+    try {
+      const res = await addToWatchlist({
+        user: me,
+        title: found.title,
+        cover: found.cover,
+        year: found.year,
+        ep: found.ep,
+        genres: found.genres,
+        c1: found.c1,
+        c2: found.c2,
+      });
+      await refresh();
+      flash(res.already ? "Already on your watchlist" : "Saved to your watchlist");
+      setScreen("feed");
+    } catch (e) {
+      flash(e instanceof Error ? e.message : "could not save");
+    }
+  };
 
   const submit = async () => {
     if (!me || !found) return;
@@ -142,7 +173,7 @@ export function Add() {
           placeholder="type the anime name..."
           style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 15, fontWeight: 600 }}
         />
-        <button onClick={runSearch} style={{ padding: "10px 16px", borderRadius: 11, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: acc, color: "#0a0c0f" }}>Search</button>
+        <button onClick={() => runSearch()} style={{ padding: "10px 16px", borderRadius: 11, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: acc, color: "#0a0c0f" }}>Search</button>
       </div>
 
       {finding && (
@@ -159,7 +190,7 @@ export function Add() {
         <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "13px 15px", borderRadius: 14, background: "#1a1410", boxShadow: `inset 0 0 0 1.5px ${acc}55`, marginBottom: 18 }}>
           <span style={{ color: acc, fontSize: 16 }}>↺</span>
           <div style={{ fontSize: 13, color: "#e7eaef", lineHeight: 1.4 }}>
-            <b>{title}</b> is already on Canon — your take will be <b style={{ color: acc }}>added to that card</b> and the rating re-averaged.
+            <b>{title}</b> is already on Senpai — your take will be <b style={{ color: acc }}>added to that card</b> and the rating re-averaged.
           </div>
         </div>
       )}
@@ -266,12 +297,20 @@ export function Add() {
           >
             {ready ? (isDup ? "Add my take to this show" : "Log it to the feed") : "Fill rating, mood & platform"}
           </button>
+
+          {/* haven't watched it yet? park it on the watchlist instead */}
+          <button
+            onClick={saveForLater}
+            style={{ width: "100%", marginTop: 10, padding: 14, borderRadius: 15, border: "1.5px solid rgba(255,255,255,.14)", cursor: "pointer", fontWeight: 700, fontSize: 14, background: "transparent", color: "#c6ccd4" }}
+          >
+            ◇ Haven&apos;t watched yet — save for later
+          </button>
         </div>
       )}
 
       {!finding && !found && (
         <div style={{ textAlign: "center", color: "#4a525d", fontSize: 13, padding: "36px 30px", lineHeight: 1.6 }}>
-          Type a show and tap <b style={{ color: "#8a929e" }}>Search</b> — Canon pulls its real artwork, year, and genres from the web.
+          Type a show and tap <b style={{ color: "#8a929e" }}>Search</b> — Senpai pulls its real artwork, year, and genres from the web.
         </div>
       )}
     </div>

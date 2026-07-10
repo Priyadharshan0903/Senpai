@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
-import { AnimeModel, EmoteModel, ProfileModel } from "@/models";
+import { AnimeModel, EmoteModel, ProfileModel, WatchlistModel } from "@/models";
 import { animeToEntry, profileToClient } from "@/lib/serialize";
-import { AppData } from "@/lib/types";
+import { AppData, WatchlistItem } from "@/lib/types";
+import { norm } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,11 @@ export async function GET(req: NextRequest) {
   try {
     const me = req.nextUrl.searchParams.get("me") || "";
     await connectDB();
-    const [profileDocs, animeDocs, emoteDocs] = await Promise.all([
+    const [profileDocs, animeDocs, emoteDocs, watchlistDocs] = await Promise.all([
       ProfileModel.find().sort({ order: 1, createdAt: 1 }).lean(),
       AnimeModel.find().sort({ updatedAt: -1 }).lean(),
       EmoteModel.find().lean(),
+      WatchlistModel.find().sort({ createdAt: -1 }).lean(),
     ]);
 
     // animeId -> emoji -> total toggle count, and animeId -> emojis by `me`
@@ -27,6 +29,40 @@ export async function GET(req: NextRequest) {
       if (me && e.user === me) (mineMap[aid] ||= []).push(e.emoji);
     }
 
+    // normalized title -> entry id, to resolve watchlist items already on Senpai
+    const titleToEntry: Record<string, string> = {};
+    for (const a of animeDocs as { _id: unknown; title: string }[]) {
+      titleToEntry[norm(a.title)] = String(a._id);
+    }
+
+    const watchlist: WatchlistItem[] = (
+      watchlistDocs as {
+        _id: unknown;
+        user: string;
+        title: string;
+        normTitle: string;
+        anilistId?: number | null;
+        cover?: string;
+        year?: string;
+        ep?: string;
+        genres?: string[];
+        c1?: string;
+        c2?: string;
+      }[]
+    ).map((w) => ({
+      id: String(w._id),
+      user: w.user,
+      title: w.title,
+      anilistId: w.anilistId ?? null,
+      cover: w.cover || "",
+      year: w.year || "",
+      ep: w.ep || "",
+      genres: w.genres || [],
+      c1: w.c1 || "#1a1e25",
+      c2: w.c2 || "#141821",
+      entryId: titleToEntry[w.normTitle] || null,
+    }));
+
     const data: AppData = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       profiles: (profileDocs as any[]).map((p) => profileToClient(p)),
@@ -36,6 +72,7 @@ export async function GET(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return animeToEntry(a as any, counts[id] || {}, mineMap[id] || []);
       }),
+      watchlist,
     };
     return NextResponse.json(data);
   } catch (err) {

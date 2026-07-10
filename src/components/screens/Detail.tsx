@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import { useCanon } from "@/store";
+import React, { useEffect, useState } from "react";
+import { useSenpai } from "@/store";
 import { CoverArt } from "@/components/CoverArt";
 import { Avatar, Stars, StarPicker } from "@/components/bits";
 import { avg, buildEmotes, resolvePerson, MOOD_META, moodBgOf } from "@/lib/derive";
-import { MOOD_LIST, rewatchLabel } from "@/lib/theme";
-import { postFact, confirmFact, postLog } from "@/lib/api";
+import { MOOD_LIST, PLATFORM_LIST, PLATFORM_META, rewatchLabel } from "@/lib/theme";
+import { postFact, confirmFact, postLog, editLog, addToWatchlist, removeFromWatchlist } from "@/lib/api";
 
 const Label = ({ children }: { children: React.ReactNode }) => (
   <div className="mono" style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px" }}>
@@ -15,22 +15,92 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 );
 
 export function Detail() {
-  const { acc, data, me, detailId, closeDetail, reactEmote, refresh, flash } = useCanon();
+  const { acc, data, me, detailId, closeDetail, reactEmote, refresh, flash } = useSenpai();
 
   const [takeRating, setTakeRating] = useState(0);
   const [takeMood, setTakeMood] = useState("");
+  const [takePlatform, setTakePlatform] = useState("");
   const [takeReflect, setTakeReflect] = useState("");
   const [takeRewatch, setTakeRewatch] = useState(0);
+  const [takeMomentTitle, setTakeMomentTitle] = useState("");
+  const [takeMomentWhy, setTakeMomentWhy] = useState("");
+  const [editing, setEditing] = useState(false);
   const [factDraft, setFactDraft] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // fresh form whenever a different show opens
+  useEffect(() => {
+    setTakeRating(0);
+    setTakeMood("");
+    setTakePlatform("");
+    setTakeReflect("");
+    setTakeRewatch(0);
+    setTakeMomentTitle("");
+    setTakeMomentWhy("");
+    setEditing(false);
+    setFactDraft("");
+  }, [detailId]);
 
   const e = data?.entries.find((x) => x.id === detailId);
   if (!e || !data || !me) return null;
 
   const emotes = buildEmotes(e, acc);
-  const mine = e.watches.some((w) => w.user === me);
+  const myWatch = e.watches.find((w) => w.user === me);
+  const mine = !!myWatch;
   const takeReady = takeRating > 0 && !!takeMood;
   const factReady = factDraft.trim().length > 0;
+  const showForm = !mine || editing;
+
+  const startEdit = () => {
+    if (!myWatch) return;
+    setTakeRating(myWatch.rating / 2);
+    setTakeMood(myWatch.mood);
+    setTakePlatform(myWatch.platform);
+    setTakeReflect(myWatch.reflect === "(no thoughts added)" ? "" : myWatch.reflect);
+    setTakeRewatch(myWatch.rewatch || 0);
+    setTakeMomentTitle(myWatch.momentTitle || "");
+    setTakeMomentWhy(myWatch.momentWhy || "");
+    setEditing(true);
+  };
+
+  const resetForm = () => {
+    setTakeRating(0);
+    setTakeMood("");
+    setTakePlatform("");
+    setTakeReflect("");
+    setTakeRewatch(0);
+    setTakeMomentTitle("");
+    setTakeMomentWhy("");
+    setEditing(false);
+  };
+
+  // bookmark state: my watchlist item pointing at this entry (or its title)
+  const myWatchItem = data.watchlist.find((w) => w.user === me && (w.entryId === e.id || w.title === e.title));
+
+  const toggleBookmark = async () => {
+    try {
+      if (myWatchItem) {
+        await removeFromWatchlist(myWatchItem.id, me);
+        await refresh();
+        flash("Removed from watchlist");
+      } else {
+        await addToWatchlist({
+          user: me,
+          title: e.title,
+          cover: e.cover,
+          year: e.year,
+          ep: e.ep,
+          genres: e.genres,
+          c1: e.c1,
+          c2: e.c2,
+        });
+        await refresh();
+        flash("Saved to your watchlist");
+      }
+    } catch (err) {
+      flash(err instanceof Error ? err.message : "could not update watchlist");
+    }
+  };
 
   const submitTake = async () => {
     if (!takeReady) {
@@ -39,21 +109,37 @@ export function Detail() {
     }
     setBusy(true);
     try {
-      await postLog({
-        user: me,
-        title: e.title,
-        rating: takeRating * 2,
-        mood: takeMood,
-        platform: "Crunchyroll",
-        reflect: takeReflect,
-        rewatch: takeRewatch,
-      });
-      await refresh();
-      setTakeRating(0);
-      setTakeMood("");
-      setTakeReflect("");
-      setTakeRewatch(0);
-      flash("Your rating joined the average");
+      if (editing) {
+        await editLog({
+          animeId: e.id,
+          user: me,
+          rating: takeRating * 2,
+          mood: takeMood,
+          platform: takePlatform || undefined,
+          reflect: takeReflect,
+          momentTitle: takeMomentTitle,
+          momentWhy: takeMomentWhy,
+          rewatch: takeRewatch,
+        });
+        await refresh();
+        resetForm();
+        flash("Take updated — average re-derived");
+      } else {
+        await postLog({
+          user: me,
+          title: e.title,
+          rating: takeRating * 2,
+          mood: takeMood,
+          platform: takePlatform || "Crunchyroll",
+          reflect: takeReflect,
+          momentTitle: takeMomentTitle,
+          momentWhy: takeMomentWhy,
+          rewatch: takeRewatch,
+        });
+        await refresh();
+        resetForm();
+        flash("Your rating joined the average");
+      }
     } catch (err) {
       flash(err instanceof Error ? err.message : "could not post");
     } finally {
@@ -90,6 +176,15 @@ export function Detail() {
         <CoverArt src={e.cover} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg,#0a0c0f 3%,rgba(10,12,15,.35) 45%,transparent 72%)", pointerEvents: "none" }} />
         <button onClick={closeDetail} style={{ position: "absolute", top: 54, left: 16, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: "#fff", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}>‹</button>
+        {!mine && (
+          <button
+            onClick={toggleBookmark}
+            title={myWatchItem ? "Remove from watchlist" : "Save to watchlist"}
+            style={{ position: "absolute", top: 54, right: 16, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: myWatchItem ? acc : "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: myWatchItem ? "#0a0c0f" : "#fff", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}
+          >
+            {myWatchItem ? "◆" : "◇"}
+          </button>
+        )}
         <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 20, background: "rgba(8,10,13,.6)", backdropFilter: "blur(8px)", color: acc, fontWeight: 800, fontSize: 16, pointerEvents: "none" }}>
           <span>★</span>
           <span className="mono">{avg(e).toFixed(1)}</span>
@@ -222,11 +317,15 @@ export function Detail() {
           <button onClick={submitFact} style={{ padding: "9px 15px", borderRadius: 11, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12.5, background: factReady ? acc : "#181c22", color: factReady ? "#0a0c0f" : "#5a636f" }}>Add</button>
         </div>
 
-        {/* add your take */}
-        {!mine ? (
+        {/* add / edit your take */}
+        {showForm ? (
           <div style={{ marginTop: 22, borderRadius: 16, padding: 16, background: "#101822", boxShadow: `inset 0 0 0 1.5px ${acc}55` }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#f3f5f8", marginBottom: 2 }}>You watched this too?</div>
-            <div style={{ fontSize: 12.5, color: "#8a929e", marginBottom: 15 }}>Your rating joins the crew average.</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#f3f5f8", marginBottom: 2 }}>
+              {editing ? "Edit your take" : "You watched this too?"}
+            </div>
+            <div style={{ fontSize: 12.5, color: "#8a929e", marginBottom: 15 }}>
+              {editing ? "The crew average re-derives from your new rating." : "Your rating joins the crew average."}
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
               <StarPicker value={takeRating} onPick={setTakeRating} acc={acc} size={26} gap={3} />
               <span className="mono" style={{ fontWeight: 700, fontSize: 16, color: acc }}>{takeRating > 0 ? takeRating * 2 + "/10" : "–/10"}</span>
@@ -236,6 +335,15 @@ export function Detail() {
               <button onClick={() => setTakeRewatch(Math.max(0, takeRewatch - 1))} style={smallStep}>−</button>
               <span style={{ fontWeight: 700, fontSize: 13, color: "#c6ccd4", minWidth: 74, textAlign: "center" }}>{takeRewatch === 0 ? "First watch" : takeRewatch + "×"}</span>
               <button onClick={() => setTakeRewatch(takeRewatch + 1)} style={smallStep}>+</button>
+            </div>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
+              {PLATFORM_LIST.map((p) => {
+                const sel = takePlatform === p;
+                const c = PLATFORM_META[p];
+                return (
+                  <button key={p} onClick={() => setTakePlatform(p)} style={{ padding: "7px 12px", borderRadius: 11, border: `1.5px solid ${sel ? c : "rgba(255,255,255,.12)"}`, background: sel ? c : "transparent", color: sel ? "#0a0c0f" : "#c6ccd4", cursor: "pointer", fontWeight: 700, fontSize: 11.5 }}>{p}</button>
+                );
+              })}
             </div>
             <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
               {MOOD_LIST.map((m) => {
@@ -250,19 +358,45 @@ export function Detail() {
               value={takeReflect}
               onChange={(ev) => setTakeReflect(ev.target.value)}
               placeholder="your thoughts..."
-              style={{ width: "100%", height: 70, padding: 13, borderRadius: 12, background: "#0c0f14", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.08)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 13.5, lineHeight: 1.5, marginBottom: 14 }}
+              style={{ width: "100%", height: 70, padding: 13, borderRadius: 12, background: "#0c0f14", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.08)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 13.5, lineHeight: 1.5, marginBottom: 10 }}
+            />
+            <input
+              value={takeMomentTitle}
+              onChange={(ev) => setTakeMomentTitle(ev.target.value)}
+              placeholder="favorite moment (optional) — e.g. Ep 10 — the rooftop"
+              style={{ width: "100%", padding: "12px 13px", borderRadius: 12, background: "#0c0f14", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.08)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 13, fontWeight: 600, marginBottom: 10 }}
+            />
+            <textarea
+              value={takeMomentWhy}
+              onChange={(ev) => setTakeMomentWhy(ev.target.value)}
+              placeholder="why did it hit so hard?"
+              style={{ width: "100%", height: 54, padding: "12px 13px", borderRadius: 12, background: "#0c0f14", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.08)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}
             />
             <button
               onClick={submitTake}
               disabled={busy}
               style={{ width: "100%", padding: 14, borderRadius: 13, border: "none", cursor: "pointer", fontWeight: 800, fontSize: 15, background: takeReady ? acc : "#181c22", color: takeReady ? "#0a0c0f" : "#5a636f", opacity: busy ? 0.7 : 1 }}
             >
-              {takeReady ? "Add my take" : "Rate & pick a mood"}
+              {takeReady ? (editing ? "Save changes" : "Add my take") : "Rate & pick a mood"}
             </button>
+            {editing && (
+              <button
+                onClick={resetForm}
+                style={{ width: "100%", marginTop: 8, padding: 12, borderRadius: 13, border: "1.5px solid rgba(255,255,255,.12)", cursor: "pointer", fontWeight: 700, fontSize: 13, background: "transparent", color: "#8a929e" }}
+              >
+                Cancel
+              </button>
+            )}
           </div>
         ) : (
-          <div style={{ marginTop: 22, textAlign: "center", padding: 14, borderRadius: 14, background: "#101822", color: acc, fontWeight: 700, fontSize: 13.5 }}>
-            ✓ Your rating is part of this average
+          <div style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 14, background: "#101822" }}>
+            <span style={{ flex: 1, color: acc, fontWeight: 700, fontSize: 13.5 }}>✓ Your rating is part of this average</span>
+            <button
+              onClick={startEdit}
+              style={{ flex: "none", padding: "8px 15px", borderRadius: 11, border: `1.5px solid ${acc}66`, cursor: "pointer", fontWeight: 700, fontSize: 12.5, background: "transparent", color: acc }}
+            >
+              ✎ Edit
+            </button>
           </div>
         )}
       </div>

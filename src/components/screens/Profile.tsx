@@ -1,15 +1,45 @@
 "use client";
 
-import React from "react";
-import { useCanon } from "@/store";
+import React, { useState } from "react";
+import { useSenpai } from "@/store";
 import { resolvePerson, MOOD_META, moodBgOf } from "@/lib/derive";
 import { rewatchLabel } from "@/lib/theme";
+import { updateProfile } from "@/lib/api";
+import { avatarUrl } from "@/lib/avatar";
 
 /* eslint-disable @next/next/no-img-element */
+
+function randomSeeds(base: string, n: number): string[] {
+  return Array.from({ length: n }, () => base + "-" + Math.random().toString(36).slice(2, 8));
+}
+
 export function Profile() {
-  const { acc, data, me, switchProfile, openDetail } = useCanon();
+  const { acc, data, me, switchProfile, openDetail, refresh, flash } = useSenpai();
+  const [picking, setPicking] = useState(false);
+  const [seeds, setSeeds] = useState<string[]>([]);
+  const [savingSeed, setSavingSeed] = useState<string | null>(null);
   if (!data || !me) return null;
   const meP = resolvePerson(data.profiles, me);
+
+  const openPicker = () => {
+    setSeeds([meP.name, ...randomSeeds(meP.name, 7)]);
+    setPicking(true);
+  };
+
+  const pickSeed = async (seed: string) => {
+    if (savingSeed) return;
+    setSavingSeed(seed);
+    try {
+      await updateProfile({ id: me, avatarSeed: seed });
+      await refresh();
+      setPicking(false);
+      flash("Profile picture updated");
+    } catch (e) {
+      flash(e instanceof Error ? e.message : "could not update");
+    } finally {
+      setSavingSeed(null);
+    }
+  };
 
   const myWatches: { e: (typeof data.entries)[number]; w: (typeof data.entries)[number]["watches"][number] }[] = [];
   data.entries.forEach((e) => e.watches.forEach((w) => { if (w.user === me) myWatches.push({ e, w }); }));
@@ -34,9 +64,12 @@ export function Profile() {
 
   return (
     <div style={{ padding: "8px 18px 24px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
-        <div style={{ width: 62, height: 62, borderRadius: "50%", overflow: "hidden", background: acc, display: "block" }}>
-          <img src={meP.avatar} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: picking ? 14 : 22 }}>
+        <div onClick={openPicker} style={{ position: "relative", width: 62, height: 62, flex: "none", cursor: "pointer" }}>
+          <div style={{ width: 62, height: 62, borderRadius: "50%", overflow: "hidden", background: acc, display: "block" }}>
+            <img src={meP.avatar} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+          </div>
+          <span style={{ position: "absolute", bottom: -2, right: -2, width: 22, height: 22, borderRadius: "50%", background: "#12161c", boxShadow: "0 0 0 2px #0a0c0f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#c6ccd4" }}>✎</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 800, fontSize: 23, color: "#f3f5f8", letterSpacing: "-.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{meP.name}</div>
@@ -44,6 +77,26 @@ export function Profile() {
         </div>
         <button onClick={switchProfile} style={{ flex: "none", padding: "0 14px", height: 38, borderRadius: 12, border: "1.5px solid rgba(255,255,255,.14)", background: "transparent", color: "#c6ccd4", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>Switch</button>
       </div>
+
+      {/* avatar picker */}
+      {picking && (
+        <div style={{ borderRadius: 16, padding: 14, background: "#101822", boxShadow: `inset 0 0 0 1.5px ${acc}44`, marginBottom: 22, animation: "cnUp .25s ease both" }}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
+            <span className="mono" style={{ flex: 1, fontSize: 10, color: "#8a929e", letterSpacing: "1.5px" }}>PICK A NEW LOOK</span>
+            <button onClick={() => setSeeds([meP.name, ...randomSeeds(meP.name, 7)])} style={{ padding: "6px 12px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,.14)", background: "transparent", color: "#c6ccd4", fontWeight: 700, fontSize: 11.5, cursor: "pointer", marginRight: 8 }}>↻ Shuffle</button>
+            <button onClick={() => setPicking(false)} style={{ padding: "6px 12px", borderRadius: 10, border: "none", background: "transparent", color: "#8a929e", fontWeight: 700, fontSize: 11.5, cursor: "pointer" }}>Close</button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+            {seeds.map((s) => (
+              <div key={s} onClick={() => pickSeed(s)} style={{ cursor: "pointer", opacity: savingSeed && savingSeed !== s ? 0.5 : 1 }}>
+                <div style={{ width: "100%", aspectRatio: "1", borderRadius: "50%", overflow: "hidden", background: "#12161c", boxShadow: savingSeed === s ? `0 0 0 2px ${acc}` : "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
+                  <img src={avatarUrl(s)} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
         {stats.map((s) => (

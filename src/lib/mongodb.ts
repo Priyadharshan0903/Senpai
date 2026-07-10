@@ -25,7 +25,7 @@ export async function connectDB(): Promise<typeof mongoose> {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
     cached.promise = mongoose.connect(MONGODB_URI, {
-      dbName: process.env.MONGODB_DB || "canon",
+      dbName: process.env.MONGODB_DB || "senpai",
       bufferCommands: false,
     });
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useCanon, Screen } from "@/store";
+import { useSenpai, Screen } from "@/store";
 
 const items: { key: Screen; label: string; icon: (c: string) => React.ReactNode }[] = [
   {
@@ -48,7 +48,7 @@ const items: { key: Screen; label: string; icon: (c: string) => React.ReactNode 
 ];
 
 export function BottomNav() {
-  const { acc, screen, detailId, setScreen } = useCanon();
+  const { acc, screen, detailId, setScreen } = useSenpai();
   return (
     <div
       style={{
