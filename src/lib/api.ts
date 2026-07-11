@@ -190,3 +190,13 @@ export async function setCover(id: string, cover: string) {
     })
   );
 }
+
+export async function toggleFav(animeId: string, user: string) {
+  return j<{ ok: boolean; fav: boolean }>(
+    await fetch("/api/favs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ animeId, user }),
+    })
+  );
+}

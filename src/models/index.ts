@@ -47,6 +47,7 @@ const AnimeSchema = new Schema(
     c2: { type: String, default: "#141821" },
     cover: { type: String, default: "" },
     emotesBase: { type: Map, of: Number, default: {} },
+    favs: { type: [String], default: [] }, // profile ids who favorited
     watches: { type: [WatchSchema], default: [] },
     facts: { type: [FactSchema], default: [] },
     time: { type: String, default: "now" },

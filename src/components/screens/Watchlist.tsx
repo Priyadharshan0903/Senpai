@@ -10,7 +10,7 @@ import { PlusIcon } from "@/components/bits";
 /* eslint-disable @next/next/no-img-element */
 
 const WL_GENRES = ["All", "Action", "Fantasy", "Drama", "Comedy", "Sci-Fi", "Supernatural", "Adventure"];
-const STATUSES = ["All", "Watching", "Plan to watch", "Watched"];
+const STATUSES = ["All", "Favorites", "Watching", "Plan to watch", "Watched"];
 
 interface Row {
   key: string;
@@ -21,6 +21,7 @@ interface Row {
   genres: string[];
   status: "Watching" | "Plan to watch" | "Watched";
   isWatched: boolean;
+  favd: boolean;
   rating: string;
   platform: string;
   sub: string;
@@ -56,6 +57,7 @@ export function Watchlist() {
           genres: e.genres,
           status: "Watched",
           isWatched: true,
+          favd: e.favs.includes(uid),
           rating: w.rating.toFixed(1),
           platform: w.platform,
           sub: e.genres.slice(0, 2).join(" / ") + " · " + w.platform,
@@ -75,6 +77,7 @@ export function Watchlist() {
         genres: it.genres,
         status: st,
         isWatched: false,
+        favd: false,
         rating: "",
         platform: "", // list items have no platform yet — they pass the Where filter via "All"
         sub: it.genres.slice(0, 2).join(" / ") || (it.year ? it.year + " · " + it.ep : "on the list"),
@@ -89,7 +92,7 @@ export function Watchlist() {
   const filtered = rows.filter(
     (x) =>
       (genre === "All" || x.genres.includes(genre)) &&
-      (status === "All" || x.status === status) &&
+      (status === "All" || (status === "Favorites" ? x.favd : x.status === status)) &&
       (platform === "All" || x.platform === platform)
   );
 
@@ -192,7 +195,7 @@ export function Watchlist() {
             onClick={() => setStatus(s)}
             style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11.5, background: status === s ? acc : "transparent", color: status === s ? "#0a0c0f" : "#9aa3af", whiteSpace: "nowrap" }}
           >
-            {s === "Plan to watch" ? "Plan" : s}
+            {s === "Plan to watch" ? "Plan" : s === "Favorites" ? "♥ Favs" : s}
           </button>
         ))}
       </div>
@@ -233,6 +236,7 @@ export function Watchlist() {
                 </span>
               )}
               <div style={{ flex: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                {row.favd && <span style={{ color: "#ff6f61", fontSize: 13 }}>♥</span>}
                 {row.isWatched && <span style={{ color: acc, fontWeight: 800, fontSize: 13.5 }}>★ {row.rating}</span>}
                 <span style={{ padding: "4px 10px", borderRadius: 14, fontSize: 10.5, fontWeight: 700, background: sc + "22", color: sc }}>{row.status === "Plan to watch" ? "Plan" : row.status}</span>
                 {!row.isWatched && row.user === me && (

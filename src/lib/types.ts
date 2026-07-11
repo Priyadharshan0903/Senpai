@@ -41,6 +41,7 @@ export interface Entry {
   time: string;
   emotes: Record<string, number>;
   mine: string[]; // emojis the current viewer has reacted with
+  favs: string[]; // profile ids who favorited this show
   watches: Watch[];
   facts: Fact[];
   createdAt?: string;

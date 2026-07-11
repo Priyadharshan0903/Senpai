@@ -20,6 +20,7 @@ export function Feed() {
     setScreen,
     openDetail,
     reactEmote,
+    toggleFavorite,
   } = useSenpai();
   if (!data) return null;
   const profiles = data.profiles;
@@ -117,9 +118,17 @@ export function Feed() {
                 <div style={{ position: "relative", height: COVER_H, background: `linear-gradient(155deg,${e.c1},${e.c2})` }}>
                   <CoverArt src={e.cover} />
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg,rgba(10,12,15,.96) 4%,rgba(10,12,15,.34) 42%,transparent 70%)", pointerEvents: "none" }} />
-                  <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 20, background: "rgba(8,10,13,.62)", backdropFilter: "blur(8px)", color: acc, fontWeight: 800, fontSize: 14, pointerEvents: "none" }}>
-                    <span>★</span>
-                    <span className="mono">{avg(e).toFixed(1)}</span>
+                  <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 7 }}>
+                    <button
+                      onClick={(ev) => { ev.stopPropagation(); toggleFavorite(e.id); }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "50%", border: "none", cursor: "pointer", background: e.favs.includes(me || "") ? "rgba(255,111,97,.18)" : "rgba(8,10,13,.62)", backdropFilter: "blur(8px)", transition: "transform .1s" }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill={e.favs.includes(me || "") ? "#ff6f61" : "none"} stroke={e.favs.includes(me || "") ? "#ff6f61" : "rgba(255,255,255,.75)"} strokeWidth={2.2} strokeLinejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.6 4.5 6.4 4.5c2.2 0 3.9 1.2 5.6 3.4 1.7-2.2 3.4-3.4 5.6-3.4 3.8 0 6 3.9 4.4 7.2C19.5 16.4 12 21 12 21z" /></svg>
+                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 20, background: "rgba(8,10,13,.62)", backdropFilter: "blur(8px)", color: acc, fontWeight: 800, fontSize: 14, pointerEvents: "none" }}>
+                      <span>★</span>
+                      <span className="mono">{avg(e).toFixed(1)}</span>
+                    </div>
                   </div>
                   <div style={{ position: "absolute", left: 16, right: 16, bottom: 14, pointerEvents: "none" }}>
                     <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>

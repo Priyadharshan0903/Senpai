@@ -9,7 +9,7 @@ import React, {
   useState,
 } from "react";
 import { AppData } from "@/lib/types";
-import { getData, toggleEmote } from "@/lib/api";
+import { getData, toggleEmote, toggleFav } from "@/lib/api";
 import { ACCENT } from "@/lib/theme";
 
 export type Stage = "pick" | "add" | "app";
@@ -40,6 +40,7 @@ interface SenpaiCtx {
   setGenreFilter: (g: string) => void;
   flash: (m: string) => void;
   reactEmote: (animeId: string, emoji: string) => void;
+  toggleFavorite: (animeId: string) => void;
   /** Jump to the Add screen with a title pre-filled (auto-searches). */
   openAddWith: (title: string) => void;
   consumeAddPrefill: () => string | null;
@@ -173,6 +174,26 @@ export function SenpaiProvider({ children }: { children: React.ReactNode }) {
       addPrefillRef.current = null;
       if (t) setAddPrefill(null);
       return t;
+    },
+    toggleFavorite: (animeId) => {
+      if (!me) return;
+      let added = false;
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          entries: prev.entries.map((e) => {
+            if (e.id !== animeId) return e;
+            const has = e.favs.includes(me);
+            added = !has;
+            return { ...e, favs: has ? e.favs.filter((x) => x !== me) : [...e.favs, me] };
+          }),
+        };
+      });
+      setToast(added ? "Added to favorites" : "Removed from favorites");
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToast(""), 1900);
+      toggleFav(animeId, me).catch(() => refresh());
     },
     setWlUsers,
     viewUserList: (id) => {

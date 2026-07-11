@@ -47,6 +47,7 @@ export function animeToEntry(
     time: a.time || "now",
     emotes,
     mine,
+    favs: (a as { favs?: string[] }).favs || [],
     watches: (a.watches || []).map((w) => ({
       user: w.user,
       rating: w.rating,

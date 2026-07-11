@@ -15,7 +15,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 );
 
 export function Detail() {
-  const { acc, data, me, detailId, closeDetail, reactEmote, refresh, flash } = useSenpai();
+  const { acc, data, me, detailId, closeDetail, reactEmote, refresh, flash, toggleFavorite } = useSenpai();
 
   const [takeRating, setTakeRating] = useState(0);
   const [takeMood, setTakeMood] = useState("");
@@ -214,9 +214,18 @@ export function Detail() {
             {myWatchItem ? "◆" : "◇"}
           </button>
         )}
-        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 20, background: "rgba(8,10,13,.6)", backdropFilter: "blur(8px)", color: acc, fontWeight: 800, fontSize: 16, pointerEvents: "none" }}>
-          <span>★</span>
-          <span className="mono">{avg(e).toFixed(1)}</span>
+        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 8, zIndex: 3 }}>
+          <button
+            onClick={() => toggleFavorite(e.id)}
+            title={e.favs.includes(me) ? "Remove from favorites" : "Add to favorites"}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", border: "none", cursor: "pointer", background: e.favs.includes(me) ? "rgba(255,111,97,.2)" : "rgba(8,10,13,.55)", backdropFilter: "blur(8px)", transition: "transform .1s" }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill={e.favs.includes(me) ? "#ff6f61" : "none"} stroke={e.favs.includes(me) ? "#ff6f61" : "rgba(255,255,255,.8)"} strokeWidth={2.2} strokeLinejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.6 4.5 6.4 4.5c2.2 0 3.9 1.2 5.6 3.4 1.7-2.2 3.4-3.4 5.6-3.4 3.8 0 6 3.9 4.4 7.2C19.5 16.4 12 21 12 21z" /></svg>
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 20, background: "rgba(8,10,13,.6)", backdropFilter: "blur(8px)", color: acc, fontWeight: 800, fontSize: 16, pointerEvents: "none" }}>
+            <span>★</span>
+            <span className="mono">{avg(e).toFixed(1)}</span>
+          </div>
         </div>
         <button
           onClick={() => { setArtOpen(!artOpen); setArtUrl(""); }}

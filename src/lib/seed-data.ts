@@ -45,6 +45,7 @@ export interface SeedShow {
   emotes: Record<string, number>;
   watches: SeedWatch[];
   facts: SeedFact[];
+  favs?: string[]; // crew keys who favorited
 }
 
 // Cover art + theme colors are the exact AniList CDN urls the prototype ships with.
@@ -61,6 +62,7 @@ export const SEED_SHOWS: SeedShow[] = [
     color: "#3a8f86",
     time: "2h",
     emotes: { [FIRE]: 19, [CRY]: 24, [MIND]: 5, [CROWN]: 11, [CARE]: 14 },
+    favs: ["kenji", "mei"],
     watches: [
       {
         user: "kenji",
@@ -122,6 +124,7 @@ export const SEED_SHOWS: SeedShow[] = [
     color: "#4a7a2e",
     time: "5h",
     emotes: { [FIRE]: 31, [CRY]: 22, [MIND]: 14, [CROWN]: 9, [CARE]: 8 },
+    favs: ["ravi"],
     watches: [
       {
         user: "ravi",
@@ -242,6 +245,7 @@ export const SEED_SHOWS: SeedShow[] = [
     color: "#4a6a78",
     time: "3d",
     emotes: { [FIRE]: 14, [CRY]: 11, [MIND]: 6, [CROWN]: 15, [CARE]: 10 },
+    favs: ["kenji"],
     watches: [
       {
         user: "kenji",
@@ -269,6 +273,7 @@ export const SEED_SHOWS: SeedShow[] = [
     color: "#3a7a7a",
     time: "4d",
     emotes: { [FIRE]: 9, [CRY]: 3, [MIND]: 2, [CROWN]: 8, [CARE]: 27 },
+    favs: ["yuki"],
     watches: [
       {
         user: "yuki",

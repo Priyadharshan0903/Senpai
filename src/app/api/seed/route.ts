@@ -44,6 +44,7 @@ export async function POST() {
         cover: s.cover,
         time: s.time,
         emotesBase: s.emotes,
+        favs: (s.favs || []).map((k) => keyToId[k]),
         watches: s.watches.map((w) => ({
           user: keyToId[w.user],
           rating: w.rating,
