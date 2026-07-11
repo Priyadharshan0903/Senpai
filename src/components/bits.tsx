@@ -103,56 +103,6 @@ export function LogoMark({ acc, size = 76 }: { acc: string; size?: number }) {
   );
 }
 
-export function StatusBar() {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 46,
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "14px 26px 0",
-        color: "#f3f5f8",
-        fontSize: 13,
-        letterSpacing: ".3px",
-      }}
-      className="mono"
-    >
-      <span style={{ fontWeight: 700 }}>9:41</span>
-      <span
-        style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "#9aa3af" }}
-      >
-        <span>5G</span>
-        <span
-          style={{
-            display: "inline-block",
-            width: 22,
-            height: 11,
-            border: "1.5px solid #9aa3af",
-            borderRadius: 3,
-            position: "relative",
-          }}
-        >
-          <span
-            style={{
-              position: "absolute",
-              inset: "1.5px",
-              right: 6,
-              background: "#9aa3af",
-              borderRadius: 1,
-            }}
-          />
-        </span>
-      </span>
-    </div>
-  );
-}
-
 /** Read-only star row (0-5, supports halves). */
 export function Stars({
   value,

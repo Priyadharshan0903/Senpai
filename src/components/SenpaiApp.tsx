@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useSenpai } from "@/store";
-import { StatusBar, LogoMark } from "@/components/bits";
+import { LogoMark } from "@/components/bits";
 import { Picker } from "@/components/screens/Picker";
 import { AddProfile } from "@/components/screens/AddProfile";
 import { Feed } from "@/components/screens/Feed";
@@ -64,8 +64,6 @@ export function SenpaiApp() {
         background: "#0a0c0f",
       }}
     >
-      <StatusBar />
-
       {loading && (
         <Splash acc={acc}>
           <div className="mono" style={{ fontSize: 11, color: "#8a929e", letterSpacing: "1.5px" }}>LOADING THE JOURNAL...</div>
@@ -105,7 +103,7 @@ export function SenpaiApp() {
               <div
                 style={{
                   position: "absolute",
-                  top: 46,
+                  top: "env(safe-area-inset-top, 0px)",
                   left: 0,
                   right: 0,
                   bottom: 80,

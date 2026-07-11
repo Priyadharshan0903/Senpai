@@ -210,17 +210,17 @@ export function Detail() {
       <div style={{ position: "relative", height: 280, background: `linear-gradient(155deg,${e.c1},${e.c2})` }}>
         <CoverArt src={e.cover} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg,#0a0c0f 3%,rgba(10,12,15,.35) 45%,transparent 72%)", pointerEvents: "none" }} />
-        <button onClick={closeDetail} style={{ position: "absolute", top: 54, left: 16, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: "#fff", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}>‹</button>
+        <button onClick={closeDetail} style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 12px)", left: 16, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: "#fff", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}>‹</button>
         {!mine && (
           <button
             onClick={toggleBookmark}
             title={myWatchItem ? "Remove from watchlist" : "Save to watchlist"}
-            style={{ position: "absolute", top: 54, right: 16, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: myWatchItem ? acc : "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: myWatchItem ? "#0a0c0f" : "#fff", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}
+            style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 60px)", right: 16, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: myWatchItem ? acc : "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: myWatchItem ? "#0a0c0f" : "#fff", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}
           >
             {myWatchItem ? "◆" : "◇"}
           </button>
         )}
-        <div style={{ position: "absolute", top: 12, right: 12, display: "flex", alignItems: "center", gap: 8, zIndex: 3 }}>
+        <div style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 12px)", right: 12, display: "flex", alignItems: "center", gap: 8, zIndex: 3 }}>
           <button
             onClick={() => toggleFavorite(e.id)}
             title={e.favs.includes(me) ? "Remove from favorites" : "Add to favorites"}
@@ -236,7 +236,7 @@ export function Detail() {
         <button
           onClick={() => { setArtOpen(!artOpen); setArtUrl(""); }}
           title="Change background art"
-          style={{ position: "absolute", top: mine ? 54 : 100, right: 16, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: artOpen ? acc : "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: artOpen ? "#0a0c0f" : "#fff", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}
+          style={{ position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 60px)", right: mine ? 16 : 62, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: artOpen ? acc : "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: artOpen ? "#0a0c0f" : "#fff", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}
         >
           ✎
         </button>
