@@ -8,6 +8,12 @@ out
 # env files — never commit credentials
 .env*
 
+# sqlite database + backups — data lives on the volume, not in git
+data/
+*.db
+*.db-wal
+*.db-shm
+
 # misc
 .DS_Store
 *.pem

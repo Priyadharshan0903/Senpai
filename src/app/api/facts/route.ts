@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { AnimeModel } from "@/models";
+import { eq } from "drizzle-orm";
+import { getDb, schema, newId, now } from "@/db";
+import { normText, isUniqueViolation } from "@/db/mappers";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/facts { animeId, user, text } — add a fact / bit of trivia.
+// Idempotent per user via the uq_fact_user_text DB constraint: the same person
+// can't post the same text twice on one show; a different crew member can.
 export async function POST(req: NextRequest) {
   try {
     const { animeId, user, text } = await req.json();
@@ -12,11 +15,23 @@ export async function POST(req: NextRequest) {
     if (!animeId || !user || !t) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    await connectDB();
-    const doc = await AnimeModel.findById(animeId);
-    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
-    doc.facts.push({ user, text: t, confirms: [] });
-    await doc.save();
+    const db = getDb();
+    const show = db.select().from(schema.anime).where(eq(schema.anime.id, animeId)).get();
+    if (!show) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+    try {
+      db.insert(schema.facts)
+        .values({ id: newId(), animeId, userId: user, text: t, normText: normText(t), at: now() })
+        .run();
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        return NextResponse.json(
+          { error: "You already added this exact fact to this show." },
+          { status: 409 }
+        );
+      }
+      throw err;
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";

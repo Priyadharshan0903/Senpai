@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { AnimeModel, EmoteModel, ProfileModel, WatchlistModel } from "@/models";
-import { animeToEntry, profileToClient } from "@/lib/serialize";
-import { AppData, WatchlistItem } from "@/lib/types";
-import { norm } from "@/lib/theme";
+import { asc, desc } from "drizzle-orm";
+import { getDb, schema } from "@/db";
+import { profileToClient, parseJson } from "@/db/mappers";
+import { AppData, Entry, WatchlistItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,68 +11,104 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const me = req.nextUrl.searchParams.get("me") || "";
-    await connectDB();
-    const [profileDocs, animeDocs, emoteDocs, watchlistDocs] = await Promise.all([
-      ProfileModel.find().sort({ order: 1, createdAt: 1 }).lean(),
-      AnimeModel.find().sort({ updatedAt: -1 }).lean(),
-      EmoteModel.find().lean(),
-      WatchlistModel.find().sort({ createdAt: -1 }).lean(),
-    ]);
+    const db = getDb();
 
-    // animeId -> emoji -> total toggle count, and animeId -> emojis by `me`
-    const counts: Record<string, Record<string, number>> = {};
-    const mineMap: Record<string, string[]> = {};
-    for (const e of emoteDocs as { anime: unknown; emoji: string; user: string }[]) {
-      const aid = String(e.anime);
-      (counts[aid] ||= {})[e.emoji] = (counts[aid]?.[e.emoji] || 0) + 1;
-      if (me && e.user === me) (mineMap[aid] ||= []).push(e.emoji);
+    const profileRows = db.select().from(schema.profiles).orderBy(asc(schema.profiles.ord), asc(schema.profiles.createdAt)).all();
+    const animeRows = db.select().from(schema.anime).orderBy(desc(schema.anime.updatedAt)).all();
+    const watchRows = db.select().from(schema.watches).orderBy(asc(schema.watches.id)).all();
+    const factRows = db.select().from(schema.facts).orderBy(asc(schema.facts.at)).all();
+    const confirmRows = db.select().from(schema.factConfirms).all();
+    const emoteRows = db.select().from(schema.emotes).all();
+    const favRows = db.select().from(schema.favs).all();
+    const wlRows = db.select().from(schema.watchlist).orderBy(desc(schema.watchlist.createdAt)).all();
+
+    // group child rows by anime
+    const watchesBy: Record<string, typeof watchRows> = {};
+    for (const w of watchRows) (watchesBy[w.animeId] ||= []).push(w);
+
+    const confirmsBy: Record<string, string[]> = {};
+    for (const c of confirmRows) (confirmsBy[c.factId] ||= []).push(c.userId);
+
+    const factsBy: Record<string, typeof factRows> = {};
+    for (const f of factRows) (factsBy[f.animeId] ||= []).push(f);
+
+    const emoteCounts: Record<string, Record<string, number>> = {};
+    const mineBy: Record<string, string[]> = {};
+    for (const e of emoteRows) {
+      (emoteCounts[e.animeId] ||= {})[e.emoji] = (emoteCounts[e.animeId]?.[e.emoji] || 0) + 1;
+      if (me && e.userId === me) (mineBy[e.animeId] ||= []).push(e.emoji);
     }
 
-    // normalized title -> entry id, to resolve watchlist items already on Senpai
-    const titleToEntry: Record<string, string> = {};
-    for (const a of animeDocs as { _id: unknown; title: string }[]) {
-      titleToEntry[norm(a.title)] = String(a._id);
+    const favsBy: Record<string, string[]> = {};
+    for (const f of favRows) (favsBy[f.animeId] ||= []).push(f.userId);
+
+    const entries: Entry[] = animeRows.map((a) => {
+      const base = parseJson<Record<string, number>>(a.emotesBase, {});
+      const emotes: Record<string, number> = { ...base };
+      for (const [emoji, extra] of Object.entries(emoteCounts[a.id] || {})) {
+        emotes[emoji] = (emotes[emoji] || 0) + extra;
+      }
+      return {
+        id: a.id,
+        anilistId: a.anilistId,
+        title: a.title,
+        year: a.year,
+        ep: a.ep,
+        genres: parseJson<string[]>(a.genres, []),
+        c1: a.c1,
+        c2: a.c2,
+        cover: a.cover,
+        time: a.time,
+        emotes,
+        mine: mineBy[a.id] || [],
+        favs: favsBy[a.id] || [],
+        watches: (watchesBy[a.id] || []).map((w) => ({
+          user: w.userId,
+          rating: w.rating,
+          mood: w.mood,
+          platform: w.platform,
+          reflect: w.reflect,
+          momentTitle: w.momentTitle,
+          momentWhy: w.momentWhy,
+          rewatch: w.rewatch,
+        })),
+        facts: (factsBy[a.id] || []).map((f) => ({
+          id: f.id,
+          user: f.userId,
+          text: f.text,
+          confirms: confirmsBy[f.id] || [],
+        })),
+        createdAt: new Date(a.createdAt).toISOString(),
+      };
+    });
+
+    // resolve watchlist items already logged by the crew (anilistId beats title)
+    const byNorm: Record<string, string> = {};
+    const byAni: Record<number, string> = {};
+    for (const a of animeRows) {
+      byNorm[a.normTitle] = a.id;
+      if (a.anilistId != null) byAni[a.anilistId] = a.id;
     }
 
-    const watchlist: WatchlistItem[] = (
-      watchlistDocs as {
-        _id: unknown;
-        user: string;
-        title: string;
-        normTitle: string;
-        status?: string;
-        anilistId?: number | null;
-        cover?: string;
-        year?: string;
-        ep?: string;
-        genres?: string[];
-        c1?: string;
-        c2?: string;
-      }[]
-    ).map((w) => ({
-      id: String(w._id),
-      user: w.user,
+    const watchlist: WatchlistItem[] = wlRows.map((w) => ({
+      id: w.id,
+      user: w.userId,
       title: w.title,
       status: (w.status === "Watching" ? "Watching" : "Plan") as "Watching" | "Plan",
-      anilistId: w.anilistId ?? null,
-      cover: w.cover || "",
-      year: w.year || "",
-      ep: w.ep || "",
-      genres: w.genres || [],
-      c1: w.c1 || "#1a1e25",
-      c2: w.c2 || "#141821",
-      entryId: titleToEntry[w.normTitle] || null,
+      anilistId: w.anilistId,
+      cover: w.cover,
+      year: w.year,
+      ep: w.ep,
+      genres: parseJson<string[]>(w.genres, []),
+      c1: w.c1,
+      c2: w.c2,
+      entryId:
+        (w.anilistId != null ? byAni[w.anilistId] : undefined) || byNorm[w.normTitle] || null,
     }));
 
     const data: AppData = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      profiles: (profileDocs as any[]).map((p) => profileToClient(p)),
-      entries: (animeDocs as unknown[]).map((a) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const id = String((a as any)._id);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return animeToEntry(a as any, counts[id] || {}, mineMap[id] || []);
-      }),
+      profiles: profileRows.map(profileToClient),
+      entries,
       watchlist,
     };
     return NextResponse.json(data);

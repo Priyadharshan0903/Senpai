@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { AnimeModel } from "@/models";
+import { and, eq } from "drizzle-orm";
+import { getDb, schema } from "@/db";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +11,15 @@ export async function POST(req: NextRequest) {
     if (!animeId || !user) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    await connectDB();
-    const doc = await AnimeModel.findById(animeId);
-    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
-    const has = doc.favs.includes(user);
-    doc.favs = has ? doc.favs.filter((x: string) => x !== user) : [...doc.favs, user];
-    await doc.save();
-    return NextResponse.json({ ok: true, fav: !has });
+    const db = getDb();
+    const cond = and(eq(schema.favs.animeId, animeId), eq(schema.favs.userId, user));
+    const existing = db.select().from(schema.favs).where(cond).get();
+    if (existing) {
+      db.delete(schema.favs).where(cond).run();
+      return NextResponse.json({ ok: true, fav: false });
+    }
+    db.insert(schema.favs).values({ animeId, userId: user }).run();
+    return NextResponse.json({ ok: true, fav: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });

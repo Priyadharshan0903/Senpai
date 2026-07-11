@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { AnimeModel } from "@/models";
+import { and, eq } from "drizzle-orm";
+import { getDb, schema } from "@/db";
 
 export const dynamic = "force-dynamic";
 
@@ -8,20 +8,26 @@ export const dynamic = "force-dynamic";
 // confirmation. 2+ confirms flips a fact to VERIFIED on the client.
 export async function POST(req: NextRequest) {
   try {
-    const { animeId, factId, user } = await req.json();
-    if (!animeId || !factId || !user) {
+    const { factId, user } = await req.json();
+    if (!factId || !user) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    await connectDB();
-    const doc = await AnimeModel.findById(animeId);
-    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
-    const fact = doc.facts.id(factId);
+    const db = getDb();
+    const fact = db.select().from(schema.facts).where(eq(schema.facts.id, factId)).get();
     if (!fact) return NextResponse.json({ error: "fact not found" }, { status: 404 });
-    const has = fact.confirms.includes(user);
-    fact.confirms = has
-      ? fact.confirms.filter((x: string) => x !== user)
-      : [...fact.confirms, user];
-    await doc.save();
+
+    const existing = db
+      .select()
+      .from(schema.factConfirms)
+      .where(and(eq(schema.factConfirms.factId, factId), eq(schema.factConfirms.userId, user)))
+      .get();
+    if (existing) {
+      db.delete(schema.factConfirms)
+        .where(and(eq(schema.factConfirms.factId, factId), eq(schema.factConfirms.userId, user)))
+        .run();
+    } else {
+      db.insert(schema.factConfirms).values({ factId, userId: user }).run();
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
