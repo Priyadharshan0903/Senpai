@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq, or } from "drizzle-orm";
-import { getDb, schema, newId, now } from "@/db";
+import { getDb, schema, newId, now, Db } from "@/db";
 import { norm } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +25,12 @@ interface LogBody {
 }
 
 /** Find an existing show — anilistId beats title matching. */
-function findDup(db: ReturnType<typeof getDb>, anilistId: number | null | undefined, title: string) {
+async function findDup(db: Db, anilistId: number | null | undefined, title: string) {
   if (anilistId != null) {
-    const byId = db.select().from(schema.anime).where(eq(schema.anime.anilistId, anilistId)).get();
+    const byId = await db.select().from(schema.anime).where(eq(schema.anime.anilistId, anilistId)).get();
     if (byId) return byId;
   }
-  return db.select().from(schema.anime).where(eq(schema.anime.normTitle, norm(title))).get() ?? null;
+  return await db.select().from(schema.anime).where(eq(schema.anime.normTitle, norm(title))).get() ?? null;
 }
 
 // POST /api/logs — add a watch. If the show already exists, append the take
@@ -41,14 +41,14 @@ export async function POST(req: NextRequest) {
     if (!b.user || !b.title || !b.rating || !b.mood || !b.platform) {
       return NextResponse.json({ error: "missing required fields" }, { status: 400 });
     }
-    const db = getDb();
+    const db = await getDb();
 
     // Logging a show clears it from the logger's own watchlist (others keep theirs).
     const wlCond =
       b.anilistId != null
         ? or(eq(schema.watchlist.normTitle, norm(b.title)), eq(schema.watchlist.anilistId, b.anilistId))
         : eq(schema.watchlist.normTitle, norm(b.title));
-    db.delete(schema.watchlist).where(and(eq(schema.watchlist.userId, b.user), wlCond)).run();
+    await db.delete(schema.watchlist).where(and(eq(schema.watchlist.userId, b.user), wlCond)).run();
 
     const watchRow = {
       userId: b.user,
@@ -62,9 +62,9 @@ export async function POST(req: NextRequest) {
       at: now(),
     };
 
-    const dup = findDup(db, b.anilistId, b.title);
+    const dup = await findDup(db, b.anilistId, b.title);
     if (dup) {
-      const mine = db
+      const mine = await db
         .select()
         .from(schema.watches)
         .where(and(eq(schema.watches.animeId, dup.id), eq(schema.watches.userId, b.user)))
@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
       if (mine) {
         return NextResponse.json({ ok: true, id: dup.id, already: true, title: dup.title });
       }
-      db.insert(schema.watches).values({ ...watchRow, animeId: dup.id }).run();
-      db.update(schema.anime)
+      await db.insert(schema.watches).values({ ...watchRow, animeId: dup.id }).run();
+      await db.update(schema.anime)
         .set({ time: "now", updatedAt: now(), cover: dup.cover || b.cover || "" })
         .where(eq(schema.anime.id, dup.id))
         .run();
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     const animeId = newId();
-    db.insert(schema.anime)
+    await db.insert(schema.anime)
       .values({
         id: animeId,
         anilistId: b.anilistId ?? null,
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         updatedAt: now(),
       })
       .run();
-    db.insert(schema.watches).values({ ...watchRow, animeId }).run();
+    await db.insert(schema.watches).values({ ...watchRow, animeId }).run();
     return NextResponse.json({ ok: true, id: animeId, created: true, title: b.title.trim() });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
@@ -131,8 +131,8 @@ export async function PATCH(req: NextRequest) {
     if (!b.animeId || !b.user) {
       return NextResponse.json({ error: "missing animeId/user" }, { status: 400 });
     }
-    const db = getDb();
-    const watch = db
+    const db = await getDb();
+    const watch = await db
       .select()
       .from(schema.watches)
       .where(and(eq(schema.watches.animeId, b.animeId), eq(schema.watches.userId, b.user)))
@@ -151,7 +151,7 @@ export async function PATCH(req: NextRequest) {
     if (typeof b.rewatch === "number") updates.rewatch = Math.max(0, b.rewatch);
 
     if (Object.keys(updates).length > 0) {
-      db.update(schema.watches).set(updates).where(eq(schema.watches.id, watch.id)).run();
+      await db.update(schema.watches).set(updates).where(eq(schema.watches.id, watch.id)).run();
     }
     return NextResponse.json({ ok: true, id: b.animeId });
   } catch (err) {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb, getRaw, schema, newId, now } from "@/db";
+import { getDb, schema, newId, now } from "@/db";
 import { SEED_PROFILES, SEED_SHOWS, c1c2 } from "@/lib/seed-data";
 import { norm } from "@/lib/theme";
 import { normText } from "@/db/mappers";
@@ -9,25 +9,27 @@ export const dynamic = "force-dynamic";
 // POST /api/seed — wipe and reseed with the 6 shows + 6 crew from the prototype.
 export async function POST() {
   try {
-    const db = getDb();
+    const db = await getDb();
 
-    const tx = getRaw().transaction(() => {
+    await db.transaction(async (tx) => {
       // wipe (order respects FKs; cascades handle children anyway)
-      db.delete(schema.watchlist).run();
-      db.delete(schema.emotes).run();
-      db.delete(schema.favs).run();
-      db.delete(schema.factConfirms).run();
-      db.delete(schema.facts).run();
-      db.delete(schema.watches).run();
-      db.delete(schema.anime).run();
-      db.delete(schema.profiles).run();
+      await tx.delete(schema.watchlist).run();
+      await tx.delete(schema.emotes).run();
+      await tx.delete(schema.favs).run();
+      await tx.delete(schema.factConfirms).run();
+      await tx.delete(schema.facts).run();
+      await tx.delete(schema.watches).run();
+      await tx.delete(schema.anime).run();
+      await tx.delete(schema.profiles).run();
 
       const t0 = now();
       const keyToId: Record<string, string> = {};
-      SEED_PROFILES.forEach((p, i) => {
+      for (let i = 0; i < SEED_PROFILES.length; i++) {
+        const p = SEED_PROFILES[i];
         const id = newId();
         keyToId[p.key] = id;
-        db.insert(schema.profiles)
+        await tx
+          .insert(schema.profiles)
           .values({
             id,
             name: p.name,
@@ -39,12 +41,14 @@ export async function POST() {
             createdAt: t0 + i,
           })
           .run();
-      });
+      }
 
-      SEED_SHOWS.forEach((s, i) => {
+      for (let i = 0; i < SEED_SHOWS.length; i++) {
+        const s = SEED_SHOWS[i];
         const { c1, c2 } = c1c2(s.color);
         const animeId = newId();
-        db.insert(schema.anime)
+        await tx
+          .insert(schema.anime)
           .values({
             id: animeId,
             anilistId: s.anilistId,
@@ -64,8 +68,9 @@ export async function POST() {
           })
           .run();
 
-        s.watches.forEach((w) => {
-          db.insert(schema.watches)
+        for (const w of s.watches) {
+          await tx
+            .insert(schema.watches)
             .values({
               animeId,
               userId: keyToId[w.user],
@@ -79,11 +84,13 @@ export async function POST() {
               at: t0,
             })
             .run();
-        });
+        }
 
-        s.facts.forEach((f, fi) => {
+        for (let fi = 0; fi < s.facts.length; fi++) {
+          const f = s.facts[fi];
           const factId = newId();
-          db.insert(schema.facts)
+          await tx
+            .insert(schema.facts)
             .values({
               id: factId,
               animeId,
@@ -93,17 +100,16 @@ export async function POST() {
               at: t0 + fi,
             })
             .run();
-          (f.confirms || []).forEach((k) => {
-            db.insert(schema.factConfirms).values({ factId, userId: keyToId[k] }).run();
-          });
-        });
+          for (const k of f.confirms || []) {
+            await tx.insert(schema.factConfirms).values({ factId, userId: keyToId[k] }).run();
+          }
+        }
 
-        (s.favs || []).forEach((k) => {
-          db.insert(schema.favs).values({ animeId, userId: keyToId[k] }).run();
-        });
-      });
+        for (const k of s.favs || []) {
+          await tx.insert(schema.favs).values({ animeId, userId: keyToId[k] }).run();
+        }
+      }
     });
-    tx();
 
     return NextResponse.json({ ok: true, profiles: SEED_PROFILES.length, shows: SEED_SHOWS.length });
   } catch (err) {

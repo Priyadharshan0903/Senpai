@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
     const name = (body?.name || "").trim();
     if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
-    const db = getDb();
-    const count = db.select().from(schema.profiles).all().length;
+    const db = await getDb();
+    const count = (await db.select().from(schema.profiles).all()).length;
     const row = {
       id: newId(),
       name,
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       createdAt: now(),
     };
     try {
-      db.insert(schema.profiles).values(row).run();
+      await db.insert(schema.profiles).values(row).run();
     } catch (err) {
       if (isUniqueViolation(err)) {
         return NextResponse.json({ error: NAME_TAKEN }, { status: 409 });
@@ -50,8 +50,8 @@ export async function PATCH(req: NextRequest) {
     const id = body?.id;
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    const db = getDb();
-    const existing = db.select().from(schema.profiles).where(eq(schema.profiles.id, id)).get();
+    const db = await getDb();
+    const existing = await db.select().from(schema.profiles).where(eq(schema.profiles.id, id)).get();
     if (!existing) return NextResponse.json({ error: "profile not found" }, { status: 404 });
 
     const updates: Partial<typeof existing> = {};
@@ -65,7 +65,7 @@ export async function PATCH(req: NextRequest) {
     }
     if (Object.keys(updates).length > 0) {
       try {
-        db.update(schema.profiles).set(updates).where(eq(schema.profiles.id, id)).run();
+        await db.update(schema.profiles).set(updates).where(eq(schema.profiles.id, id)).run();
       } catch (err) {
         if (isUniqueViolation(err)) {
           return NextResponse.json({ error: NAME_TAKEN }, { status: 409 });

@@ -1,14 +1,15 @@
-import Database from "better-sqlite3";
-import { drizzle, BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import { createClient, Client } from "@libsql/client";
+import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
 import fs from "node:fs";
 import path from "node:path";
 import * as schema from "./schema";
 
-// DB file location:
-//  - local dev: ./data/senpai.db
-//  - Railway:   set SQLITE_PATH=/data/senpai.db and mount a persistent Volume
-//    at /data (Service → Settings → Volumes) so redeploys never lose data.
-const DB_PATH = process.env.SQLITE_PATH || path.join(process.cwd(), "data", "senpai.db");
+// Database location:
+//  - local dev:  file:./data/senpai.db (created automatically)
+//  - production: set TURSO_DATABASE_URL=libsql://<db>-<org>.turso.io and
+//    TURSO_AUTH_TOKEN — the data lives at Turso, so redeploys never touch it.
+const DB_URL = process.env.TURSO_DATABASE_URL || "file:" + path.join(process.cwd(), "data", "senpai.db");
+const AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
 
 const DDL = `
 CREATE TABLE IF NOT EXISTS profiles (
@@ -21,7 +22,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   ord INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
 );
--- case-insensitive unique names ("Ravi" == "ravi")
 CREATE UNIQUE INDEX IF NOT EXISTS uq_profile_name ON profiles (lower(name));
 
 CREATE TABLE IF NOT EXISTS anime (
@@ -55,7 +55,6 @@ CREATE TABLE IF NOT EXISTS watches (
   rewatch INTEGER NOT NULL DEFAULT 0,
   at INTEGER NOT NULL
 );
--- one take per user per show
 CREATE UNIQUE INDEX IF NOT EXISTS uq_watch_user ON watches (anime_id, user_id);
 
 CREATE TABLE IF NOT EXISTS facts (
@@ -66,7 +65,6 @@ CREATE TABLE IF NOT EXISTS facts (
   norm_text TEXT NOT NULL,
   at INTEGER NOT NULL
 );
--- same person can't post the same fact twice on one show
 CREATE UNIQUE INDEX IF NOT EXISTS uq_fact_user_text ON facts (anime_id, user_id, norm_text);
 
 CREATE TABLE IF NOT EXISTS fact_confirms (
@@ -106,93 +104,49 @@ CREATE TABLE IF NOT EXISTS watchlist (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_watchlist ON watchlist (user_id, norm_title);
 `;
 
+export type Db = LibSQLDatabase<typeof schema>;
+
 interface DbCache {
-  raw: Database.Database | null;
-  orm: BetterSQLite3Database<typeof schema> | null;
-  lastBackupDay: string | null;
+  client: Client | null;
+  orm: Db | null;
+  ready: Promise<void> | null;
 }
 
 declare global {
   // eslint-disable-next-line no-var
-  var _sqlite: DbCache | undefined;
+  var _libsql: DbCache | undefined;
 }
 
-const cache: DbCache = global._sqlite ?? { raw: null, orm: null, lastBackupDay: null };
-global._sqlite = cache;
+const cache: DbCache = global._libsql ?? { client: null, orm: null, ready: null };
+global._libsql = cache;
 
-function open(): Database.Database {
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-  const raw = new Database(DB_PATH);
-  raw.pragma("journal_mode = WAL"); // safe concurrent reads, atomic writes
-  raw.pragma("foreign_keys = ON");
-  raw.exec(DDL);
-  return raw;
+function client(): Client {
+  if (!cache.client) {
+    if (DB_URL.startsWith("file:")) {
+      fs.mkdirSync(path.dirname(DB_URL.slice(5)), { recursive: true });
+    }
+    cache.client = createClient({ url: DB_URL, authToken: AUTH_TOKEN });
+  }
+  return cache.client;
 }
 
-export function getRaw(): Database.Database {
-  if (!cache.raw) cache.raw = open();
-  return cache.raw;
-}
-
-export function getDb(): BetterSQLite3Database<typeof schema> {
-  if (!cache.orm) cache.orm = drizzle(getRaw(), { schema });
-  maybeDailyBackup();
+/** Get the ORM, guaranteeing the schema exists (bootstraps on first call). */
+export async function getDb(): Promise<Db> {
+  if (!cache.orm) {
+    const c = client();
+    cache.ready = c
+      .executeMultiple("PRAGMA foreign_keys = ON;" + DDL)
+      .then(() => undefined);
+    cache.orm = drizzle(c, { schema });
+  }
+  await cache.ready;
   return cache.orm;
 }
 
-// ---------- backups ----------
-// A consistent snapshot is written with VACUUM INTO (works while the app is
-// live). Daily rotation: first DB access of each day snapshots into
-// <dbdir>/backups/senpai-YYYY-MM-DD.db and prunes to the newest 7.
-
-const BACKUP_DIR = path.join(path.dirname(DB_PATH), "backups");
-const KEEP = 7;
-
-export function backupNow(): string {
-  fs.mkdirSync(BACKUP_DIR, { recursive: true });
-  const stamp = new Date().toISOString().slice(0, 10);
-  const file = path.join(BACKUP_DIR, `senpai-${stamp}.db`);
-  // VACUUM INTO refuses to overwrite — replace the same-day snapshot
-  if (fs.existsSync(file)) fs.unlinkSync(file);
-  getRaw().exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
-  prune();
-  return file;
-}
-
-function prune() {
-  const files = fs
-    .readdirSync(BACKUP_DIR)
-    .filter((f) => f.startsWith("senpai-") && f.endsWith(".db"))
-    .sort(); // date-stamped names sort chronologically
-  for (const f of files.slice(0, Math.max(0, files.length - KEEP))) {
-    fs.unlinkSync(path.join(BACKUP_DIR, f));
-  }
-}
-
-function maybeDailyBackup() {
-  const today = new Date().toISOString().slice(0, 10);
-  if (cache.lastBackupDay === today) return;
-  cache.lastBackupDay = today;
-  try {
-    // skip the very first boot on an empty DB
-    const row = getRaw().prepare("SELECT COUNT(*) AS n FROM profiles").get() as { n: number };
-    if (row.n > 0) backupNow();
-  } catch {
-    // backups must never take the app down
-  }
-}
-
-export function listBackups(): { name: string; size: number; mtime: string }[] {
-  if (!fs.existsSync(BACKUP_DIR)) return [];
-  return fs
-    .readdirSync(BACKUP_DIR)
-    .filter((f) => f.startsWith("senpai-") && f.endsWith(".db"))
-    .sort()
-    .reverse()
-    .map((name) => {
-      const st = fs.statSync(path.join(BACKUP_DIR, name));
-      return { name, size: st.size, mtime: st.mtime.toISOString() };
-    });
+/** Raw client — used by the backup dump. */
+export async function getClient(): Promise<Client> {
+  await getDb();
+  return client();
 }
 
 export { schema };

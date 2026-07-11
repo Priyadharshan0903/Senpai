@@ -19,10 +19,10 @@ export async function PATCH(req: NextRequest) {
     if (trimmed && !HTTP_URL.test(trimmed)) {
       return NextResponse.json({ error: "cover must be an http(s) image URL" }, { status: 400 });
     }
-    const db = getDb();
-    const doc = db.select().from(schema.anime).where(eq(schema.anime.id, id)).get();
+    const db = await getDb();
+    const doc = await db.select().from(schema.anime).where(eq(schema.anime.id, id)).get();
     if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
-    db.update(schema.anime).set({ cover: trimmed, updatedAt: now() }).where(eq(schema.anime.id, id)).run();
+    await db.update(schema.anime).set({ cover: trimmed, updatedAt: now() }).where(eq(schema.anime.id, id)).run();
     return NextResponse.json({ ok: true, cover: trimmed });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";

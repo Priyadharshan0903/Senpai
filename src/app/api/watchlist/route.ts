@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     if (!b?.user || !title) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    const db = getDb();
+    const db = await getDb();
     const normTitle = norm(title);
     const row = {
       id: newId(),
@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
       createdAt: now(),
     };
     try {
-      db.insert(schema.watchlist).values(row).run();
+      await db.insert(schema.watchlist).values(row).run();
     } catch (err) {
       if (isUniqueViolation(err)) {
-        const existing = db
+        const existing = await db
           .select()
           .from(schema.watchlist)
           .where(and(eq(schema.watchlist.userId, b.user), eq(schema.watchlist.normTitle, normTitle)))
@@ -60,13 +60,13 @@ export async function DELETE(req: NextRequest) {
     if (!id || !user) {
       return NextResponse.json({ error: "missing id/user" }, { status: 400 });
     }
-    const db = getDb();
-    const doc = db.select().from(schema.watchlist).where(eq(schema.watchlist.id, id)).get();
+    const db = await getDb();
+    const doc = await db.select().from(schema.watchlist).where(eq(schema.watchlist.id, id)).get();
     if (!doc) return NextResponse.json({ ok: true, gone: true });
     if (doc.userId !== user) {
       return NextResponse.json({ error: "not your watchlist item" }, { status: 403 });
     }
-    db.delete(schema.watchlist).where(eq(schema.watchlist.id, id)).run();
+    await db.delete(schema.watchlist).where(eq(schema.watchlist.id, id)).run();
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
@@ -82,13 +82,13 @@ export async function PATCH(req: NextRequest) {
     if (!id || !user || !["Watching", "Plan"].includes(status)) {
       return NextResponse.json({ error: "missing/invalid fields" }, { status: 400 });
     }
-    const db = getDb();
-    const doc = db.select().from(schema.watchlist).where(eq(schema.watchlist.id, id)).get();
+    const db = await getDb();
+    const doc = await db.select().from(schema.watchlist).where(eq(schema.watchlist.id, id)).get();
     if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
     if (doc.userId !== user) {
       return NextResponse.json({ error: "not your watchlist item" }, { status: 403 });
     }
-    db.update(schema.watchlist).set({ status }).where(eq(schema.watchlist.id, id)).run();
+    await db.update(schema.watchlist).set({ status }).where(eq(schema.watchlist.id, id)).run();
     return NextResponse.json({ ok: true, status });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";

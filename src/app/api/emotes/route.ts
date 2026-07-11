@@ -11,18 +11,18 @@ export async function POST(req: NextRequest) {
     if (!animeId || !user || !emoji) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    const db = getDb();
+    const db = await getDb();
     const cond = and(
       eq(schema.emotes.animeId, animeId),
       eq(schema.emotes.userId, user),
       eq(schema.emotes.emoji, emoji)
     );
-    const existing = db.select().from(schema.emotes).where(cond).get();
+    const existing = await db.select().from(schema.emotes).where(cond).get();
     if (existing) {
-      db.delete(schema.emotes).where(cond).run();
+      await db.delete(schema.emotes).where(cond).run();
       return NextResponse.json({ ok: true, active: false });
     }
-    db.insert(schema.emotes).values({ animeId, userId: user, emoji }).run();
+    await db.insert(schema.emotes).values({ animeId, userId: user, emoji }).run();
     return NextResponse.json({ ok: true, active: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";

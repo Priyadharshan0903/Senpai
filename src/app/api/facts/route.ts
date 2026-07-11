@@ -15,12 +15,12 @@ export async function POST(req: NextRequest) {
     if (!animeId || !user || !t) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    const db = getDb();
-    const show = db.select().from(schema.anime).where(eq(schema.anime.id, animeId)).get();
+    const db = await getDb();
+    const show = await db.select().from(schema.anime).where(eq(schema.anime.id, animeId)).get();
     if (!show) return NextResponse.json({ error: "not found" }, { status: 404 });
 
     try {
-      db.insert(schema.facts)
+      await db.insert(schema.facts)
         .values({ id: newId(), animeId, userId: user, text: t, normText: normText(t), at: now() })
         .run();
     } catch (err) {

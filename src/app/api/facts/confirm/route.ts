@@ -12,21 +12,21 @@ export async function POST(req: NextRequest) {
     if (!factId || !user) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    const db = getDb();
-    const fact = db.select().from(schema.facts).where(eq(schema.facts.id, factId)).get();
+    const db = await getDb();
+    const fact = await db.select().from(schema.facts).where(eq(schema.facts.id, factId)).get();
     if (!fact) return NextResponse.json({ error: "fact not found" }, { status: 404 });
 
-    const existing = db
+    const existing = await db
       .select()
       .from(schema.factConfirms)
       .where(and(eq(schema.factConfirms.factId, factId), eq(schema.factConfirms.userId, user)))
       .get();
     if (existing) {
-      db.delete(schema.factConfirms)
+      await db.delete(schema.factConfirms)
         .where(and(eq(schema.factConfirms.factId, factId), eq(schema.factConfirms.userId, user)))
         .run();
     } else {
-      db.insert(schema.factConfirms).values({ factId, userId: user }).run();
+      await db.insert(schema.factConfirms).values({ factId, userId: user }).run();
     }
     return NextResponse.json({ ok: true });
   } catch (err) {

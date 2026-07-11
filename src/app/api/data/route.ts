@@ -11,16 +11,16 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const me = req.nextUrl.searchParams.get("me") || "";
-    const db = getDb();
+    const db = await getDb();
 
-    const profileRows = db.select().from(schema.profiles).orderBy(asc(schema.profiles.ord), asc(schema.profiles.createdAt)).all();
-    const animeRows = db.select().from(schema.anime).orderBy(desc(schema.anime.updatedAt)).all();
-    const watchRows = db.select().from(schema.watches).orderBy(asc(schema.watches.id)).all();
-    const factRows = db.select().from(schema.facts).orderBy(asc(schema.facts.at)).all();
-    const confirmRows = db.select().from(schema.factConfirms).all();
-    const emoteRows = db.select().from(schema.emotes).all();
-    const favRows = db.select().from(schema.favs).all();
-    const wlRows = db.select().from(schema.watchlist).orderBy(desc(schema.watchlist.createdAt)).all();
+    const profileRows = await db.select().from(schema.profiles).orderBy(asc(schema.profiles.ord), asc(schema.profiles.createdAt)).all();
+    const animeRows = await db.select().from(schema.anime).orderBy(desc(schema.anime.updatedAt)).all();
+    const watchRows = await db.select().from(schema.watches).orderBy(asc(schema.watches.id)).all();
+    const factRows = await db.select().from(schema.facts).orderBy(asc(schema.facts.at)).all();
+    const confirmRows = await db.select().from(schema.factConfirms).all();
+    const emoteRows = await db.select().from(schema.emotes).all();
+    const favRows = await db.select().from(schema.favs).all();
+    const wlRows = await db.select().from(schema.watchlist).orderBy(desc(schema.watchlist.createdAt)).all();
 
     // group child rows by anime
     const watchesBy: Record<string, typeof watchRows> = {};

@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // better-sqlite3 is a native addon — must stay external to the bundler
-  serverExternalPackages: ["better-sqlite3"],
+  // libsql ships native bindings — must stay external to the bundler
+  serverExternalPackages: ["@libsql/client", "libsql"],
 };
 
 export default nextConfig;

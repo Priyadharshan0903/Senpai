@@ -35,12 +35,12 @@ export function normText(s: string): string {
   return (s || "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-/** Is this a SQLite unique-constraint violation? */
+/** Is this a SQLite/libSQL unique-constraint violation? */
 export function isUniqueViolation(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    String((err as { code: unknown }).code).startsWith("SQLITE_CONSTRAINT")
-  );
+  if (typeof err !== "object" || err === null) return false;
+  const e = err as { code?: unknown; message?: unknown; cause?: unknown };
+  if (String(e.code ?? "").startsWith("SQLITE_CONSTRAINT")) return true;
+  if (String(e.message ?? "").includes("UNIQUE constraint failed")) return true;
+  // libsql sometimes nests the real error in `cause`
+  return isUniqueViolation(e.cause);
 }

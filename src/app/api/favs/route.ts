@@ -11,14 +11,14 @@ export async function POST(req: NextRequest) {
     if (!animeId || !user) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    const db = getDb();
+    const db = await getDb();
     const cond = and(eq(schema.favs.animeId, animeId), eq(schema.favs.userId, user));
-    const existing = db.select().from(schema.favs).where(cond).get();
+    const existing = await db.select().from(schema.favs).where(cond).get();
     if (existing) {
-      db.delete(schema.favs).where(cond).run();
+      await db.delete(schema.favs).where(cond).run();
       return NextResponse.json({ ok: true, fav: false });
     }
-    db.insert(schema.favs).values({ animeId, userId: user }).run();
+    await db.insert(schema.favs).values({ animeId, userId: user }).run();
     return NextResponse.json({ ok: true, fav: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
