@@ -110,8 +110,8 @@ export async function confirmFact(animeId: string, factId: string, user: string)
 export interface WatchlistPayload {
   user: string;
   title: string;
-  status?: "Watching" | "Plan";
   anilistId?: number | null;
+  status?: "Watching" | "Plan";
   cover?: string;
   year?: string;
   ep?: string;
