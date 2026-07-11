@@ -36,7 +36,9 @@ export async function POST(req: NextRequest) {
     await connectDB();
 
     // Logging a show clears it from the logger's own watchlist (others keep theirs).
-    await WatchlistModel.deleteMany({ user: b.user, normTitle: norm(b.title) });
+    const wlOr: Record<string, unknown>[] = [{ normTitle: norm(b.title) }];
+    if (b.anilistId != null) wlOr.push({ anilistId: b.anilistId });
+    await WatchlistModel.deleteMany({ user: b.user, $or: wlOr });
 
     const myWatch = {
       user: b.user,
@@ -49,10 +51,12 @@ export async function POST(req: NextRequest) {
       rewatch: b.rewatch || 0,
     };
 
-    // dup match by normalized title
-    const all = await AnimeModel.find().select("title cover watches").lean();
-    const dup = (all as { _id: unknown; title: string }[]).find(
-      (e) => norm(e.title) === norm(b.title)
+    // dup match by anilistId first, then normalized title
+    const all = await AnimeModel.find().select("title cover watches anilistId").lean();
+    const dup = (all as { _id: unknown; title: string; anilistId?: number | null }[]).find(
+      (e) =>
+        (b.anilistId != null && e.anilistId != null && e.anilistId === b.anilistId) ||
+        norm(e.title) === norm(b.title)
     );
 
     if (dup) {

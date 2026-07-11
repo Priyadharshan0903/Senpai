@@ -5,7 +5,8 @@ import { useSenpai } from "@/store";
 import { CoverArt } from "@/components/CoverArt";
 import { StarPicker } from "@/components/bits";
 import { searchAnime, postLog, addToWatchlist, SearchResult, SearchCandidate } from "@/lib/api";
-import { norm, MOOD_LIST, MOOD_META, PLATFORM_LIST, PLATFORM_META, GENRE_LIST } from "@/lib/theme";
+import { norm, MOOD_LIST, MOOD_META, PLATFORM_LIST, PLATFORM_META, GENRE_LIST, artPairForTitle } from "@/lib/theme";
+import { avg } from "@/lib/derive";
 
 const Label = ({ children }: { children: React.ReactNode }) => (
   <div className="mono" style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px", marginBottom: 11 }}>
@@ -13,11 +14,13 @@ const Label = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
+type Phase = "idle" | "searching" | "results" | "form";
+
 export function Add() {
   const { acc, data, me, setScreen, openDetail, refresh, flash, consumeAddPrefill, setWlUsers } = useSenpai();
 
+  const [phase, setPhase] = useState<Phase>("idle");
   const [title, setTitle] = useState("");
-  const [finding, setFinding] = useState(false);
   const [found, setFound] = useState<SearchResult | null>(null);
   const [dupId, setDupId] = useState<string | null>(null);
   const [platform, setPlatform] = useState("");
@@ -31,45 +34,25 @@ export function Add() {
   const [busy, setBusy] = useState(false);
   const [addStatus, setAddStatus] = useState<"Watched" | "Watching" | "Plan to watch">("Watched");
   const [candidates, setCandidates] = useState<SearchCandidate[]>([]);
+  const [searched, setSearched] = useState(""); // the query the results belong to
 
   const isDup = !!dupId;
 
+  // Search always leads to the results list — the user picks from it.
   const runSearch = async (term?: string) => {
     const t = (term ?? title).trim();
     if (!t) return;
-    const dup = data?.entries.find((e) => norm(e.title) === norm(t)) || null;
-    setDupId(dup ? dup.id : null);
-    setFinding(true);
+    setPhase("searching");
     setFound(null);
+    setDupId(null);
+    setSearched(t);
     try {
-      if (dup) {
-        setFinding(false);
-        setFound({
-          found: true,
-          title: dup.title,
-          cover: dup.cover,
-          c1: dup.c1,
-          c2: dup.c2,
-          year: dup.year,
-          ep: dup.ep,
-          genres: dup.genres.slice(),
-          matchLabel: "ALREADY ON SENPAI",
-          anilistId: null,
-          candidates: [],
-        });
-        setTitle(dup.title);
-        setCandidates([]);
-        return;
-      }
       const res = await searchAnime(t);
-      setFinding(false);
-      setFound(res);
       setCandidates(res.candidates || []);
-      if (res.title) setTitle(res.title);
+      setPhase("results");
     } catch {
-      setFinding(false);
-      setFound({ found: true, title: t, cover: "", c1: "#1a1e25", c2: "#141821", year: "", ep: "", genres: [], matchLabel: "NO MATCH — DROP YOUR OWN", anilistId: null, candidates: [] });
       setCandidates([]);
+      setPhase("results");
     }
   };
 
@@ -83,17 +66,61 @@ export function Add() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Find an existing crew entry for a candidate — anilistId beats title matching
+   *  (AniList says "Frieren: Beyond Journey's End", the crew card says "Frieren"). */
+  const findEntry = (c: { anilistId?: number | null; title: string }) =>
+    data?.entries.find(
+      (e) =>
+        (c.anilistId != null && e.anilistId != null && e.anilistId === c.anilistId) ||
+        norm(e.title) === norm(c.title)
+    ) || null;
+
+  /** What we already know about a candidate. */
+  const hintFor = (c: SearchCandidate) => {
+    const entry = findEntry(c);
+    if (entry) {
+      const mine = entry.watches.some((w) => w.user === me);
+      const a = avg(entry).toFixed(1);
+      return mine
+        ? { entry, text: `✓ You logged this · ★ ${a}`, color: "#57c99a" }
+        : { entry, text: `Already on Senpai · ${entry.watches.length} ${entry.watches.length === 1 ? "log" : "logs"} · ★ ${a}`, color: acc };
+    }
+    const wl = data?.watchlist.find(
+      (w) =>
+        w.user === me &&
+        ((c.anilistId != null && w.anilistId != null && w.anilistId === c.anilistId) ||
+          norm(w.title) === norm(c.title))
+    );
+    if (wl) {
+      return { entry: null, text: "On your watchlist · " + (wl.status === "Watching" ? "Watching" : "Plan to watch"), color: "#7c8698" };
+    }
+    return null;
+  };
+
   const pickCandidate = (c: SearchCandidate) => {
-    // check if the picked show is already on Senpai
-    const dup = data?.entries.find((e) => norm(e.title) === norm(c.title)) || null;
+    const dup = findEntry(c);
     setDupId(dup ? dup.id : null);
     setFound({
       found: true,
       ...c,
+      // an existing entry's stored art/meta wins over the fresh search result
+      cover: dup?.cover || c.cover,
+      c1: dup?.c1 || c.c1,
+      c2: dup?.c2 || c.c2,
+      year: dup?.year || c.year,
+      ep: dup?.ep || c.ep,
+      genres: dup ? dup.genres.slice() : c.genres,
       matchLabel: dup ? "ALREADY ON SENPAI" : c.cover ? "ARTWORK FOUND" : "NO MATCH — DROP YOUR OWN",
       candidates,
     });
-    setTitle(c.title);
+    setTitle(dup ? dup.title : c.title);
+    setPhase("form");
+  };
+
+  const pickFallback = () => {
+    // nothing matched anywhere — log the typed title with a gradient card
+    const [c1, c2] = artPairForTitle(searched);
+    pickCandidate({ anilistId: null, title: searched, cover: "", c1, c2, year: "", ep: "", genres: [] });
   };
 
   const watched = addStatus === "Watched";
@@ -115,6 +142,7 @@ export function Add() {
         const res = await addToWatchlist({
           user: me,
           title: found.title,
+          anilistId: found.anilistId,
           status: addStatus === "Watching" ? "Watching" : "Plan",
           cover: found.cover,
           year: found.year,
@@ -146,6 +174,7 @@ export function Add() {
       const res = await postLog({
         user: me,
         title: found.title,
+        anilistId: found.anilistId,
         rating: rating * 2,
         mood,
         platform,
@@ -198,7 +227,7 @@ export function Add() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 6px 6px 16px", borderRadius: 14, background: "#12161c", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.09)", marginBottom: 16 }}>
         <input
           value={title}
-          onChange={(e) => { setTitle(e.target.value); setFound(null); setFinding(false); setDupId(null); }}
+          onChange={(e) => { setTitle(e.target.value); setPhase("idle"); setFound(null); setDupId(null); }}
           onKeyDown={(e) => e.key === "Enter" && runSearch()}
           placeholder="type the anime name..."
           style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 15, fontWeight: 600 }}
@@ -206,30 +235,82 @@ export function Add() {
         <button onClick={() => runSearch()} style={{ padding: "10px 16px", borderRadius: 11, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: acc, color: "#0a0c0f" }}>Search</button>
       </div>
 
-      {finding && (
+      {/* ===== SEARCHING ===== */}
+      {phase === "searching" && (
         <div style={{ display: "flex", gap: 14, alignItems: "center", padding: 14, borderRadius: 16, background: "#12161c", marginBottom: 18 }}>
-          <div style={{ width: 70, height: 94, borderRadius: 9, flex: "none", background: "linear-gradient(100deg,#1a1e25 30%,#252b34 50%,#1a1e25 70%)", backgroundSize: "220px 100%", animation: "cnShim 1s linear infinite" }} />
+          <div style={{ width: 52, height: 70, borderRadius: 8, flex: "none", background: "linear-gradient(100deg,#1a1e25 30%,#252b34 50%,#1a1e25 70%)", backgroundSize: "220px 100%", animation: "cnShim 1s linear infinite" }} />
           <div style={{ flex: 1 }}>
             <div className="mono" style={{ fontSize: 11, color: acc, letterSpacing: "1px" }}>SEARCHING THE WEB...</div>
-            <div style={{ fontSize: 13, color: "#8a929e", marginTop: 6 }}>finding artwork for &quot;{title}&quot;</div>
+            <div style={{ fontSize: 13, color: "#8a929e", marginTop: 6 }}>finding matches for &quot;{title}&quot;</div>
           </div>
         </div>
       )}
 
-      {isDup && found && (
-        <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "13px 15px", borderRadius: 14, background: "#1a1410", boxShadow: `inset 0 0 0 1.5px ${acc}55`, marginBottom: 18 }}>
-          <span style={{ color: acc, fontSize: 16 }}>↺</span>
-          <div style={{ fontSize: 13, color: "#e7eaef", lineHeight: 1.4 }}>
-            <b>{title}</b> is already on Senpai — your take will be <b style={{ color: acc }}>added to that card</b> and the rating re-averaged.
-          </div>
-        </div>
-      )}
-
-      {found && (
+      {/* ===== RESULTS LIST ===== */}
+      {phase === "results" && (
         <div style={{ animation: "cnUp .3s ease both" }}>
-          <div style={{ display: "flex", gap: 14, alignItems: "stretch", padding: 14, borderRadius: 16, background: "#12161c", boxShadow: `inset 0 0 0 1.5px ${acc}55`, marginBottom: 20 }}>
+          <Label>
+            {candidates.length > 0 ? `RESULTS FOR “${searched.toUpperCase()}” · TAP ONE` : "NO MATCHES FOUND"}
+          </Label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {candidates.map((c) => {
+              const hint = hintFor(c);
+              return (
+                <div
+                  key={c.anilistId ?? c.title}
+                  onClick={() => pickCandidate(c)}
+                  style={{ display: "flex", gap: 12, alignItems: "center", padding: 10, borderRadius: 14, background: "#12161c", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)", cursor: "pointer" }}
+                >
+                  <div style={{ width: 52, height: 70, borderRadius: 8, flex: "none", background: `linear-gradient(155deg,${c.c1},${c.c2})`, position: "relative", overflow: "hidden" }}>
+                    <CoverArt src={c.cover} placeholder="no art" radius={8} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14.5, color: "#f3f5f8", lineHeight: 1.2 }} className="clamp2">{c.title}</div>
+                    <div style={{ fontSize: 11.5, color: "#8a929e", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {[c.genres.slice(0, 3).join(" · "), [c.year, c.ep].filter(Boolean).join(" · ")].filter(Boolean).join("  ·  ") || "no metadata"}
+                    </div>
+                    {hint && (
+                      <div style={{ fontSize: 11, fontWeight: 700, color: hint.color, marginTop: 5 }}>{hint.text}</div>
+                    )}
+                  </div>
+                  <span style={{ flex: "none", color: "#5a636f", fontSize: 16 }}>›</span>
+                </div>
+              );
+            })}
+
+            {/* nothing found anywhere — offer to log the typed title as-is */}
+            {candidates.length === 0 && (
+              <div
+                onClick={pickFallback}
+                style={{ display: "flex", gap: 12, alignItems: "center", padding: 10, borderRadius: 14, background: "#12161c", boxShadow: `inset 0 0 0 1.5px ${acc}44`, cursor: "pointer" }}
+              >
+                <div style={{ width: 52, height: 70, borderRadius: 8, flex: "none", background: `linear-gradient(155deg,${artPairForTitle(searched)[0]},${artPairForTitle(searched)[1]})` }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5, color: "#f3f5f8" }}>{searched}</div>
+                  <div style={{ fontSize: 11.5, color: "#8a929e", marginTop: 4 }}>couldn&apos;t find it on the web — log it anyway with a gradient card</div>
+                </div>
+                <span style={{ flex: "none", color: "#5a636f", fontSize: 16 }}>›</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== FORM ===== */}
+      {phase === "form" && found && (
+        <div style={{ animation: "cnUp .3s ease both" }}>
+          {isDup && (
+            <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "13px 15px", borderRadius: 14, background: "#1a1410", boxShadow: `inset 0 0 0 1.5px ${acc}55`, marginBottom: 18 }}>
+              <span style={{ color: acc, fontSize: 16 }}>↺</span>
+              <div style={{ fontSize: 13, color: "#e7eaef", lineHeight: 1.4 }}>
+                <b>{title}</b> is already on Senpai — your take will be <b style={{ color: acc }}>added to that card</b> and the rating re-averaged.
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 14, alignItems: "stretch", padding: 14, borderRadius: 16, background: "#12161c", boxShadow: `inset 0 0 0 1.5px ${acc}55`, marginBottom: 8 }}>
             <div style={{ width: 70, height: 94, borderRadius: 9, flex: "none", background: `linear-gradient(155deg,${found.c1},${found.c2})`, boxShadow: "0 6px 16px rgba(0,0,0,.4)", position: "relative", overflow: "hidden" }}>
-              <CoverArt src={found.cover} placeholder="drop art" radius={9} />
+              <CoverArt src={found.cover} placeholder="no art" radius={9} />
             </div>
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
@@ -238,29 +319,14 @@ export function Add() {
               </div>
               <div style={{ fontWeight: 800, fontSize: 19, color: "#f3f5f8", lineHeight: 1.1 }}>{title}</div>
               <div className="mono" style={{ fontSize: 11, color: "#8a929e", marginTop: 4 }}>{meta}</div>
-              <div style={{ fontSize: 11, color: "#5a636f", marginTop: 8 }}>not it? drop the real cover on the poster</div>
             </div>
           </div>
-
-          {/* did-you-mean candidates */}
-          {candidates.length > 1 && (
-            <div style={{ marginBottom: 20 }}>
-              <Label>NOT IT? PICK THE RIGHT ONE</Label>
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
-                {candidates.map((c) => {
-                  const sel = found?.title === c.title;
-                  return (
-                    <div key={c.anilistId ?? c.title} onClick={() => pickCandidate(c)} style={{ width: 84, flex: "none", cursor: "pointer" }}>
-                      <div style={{ height: 112, borderRadius: 9, overflow: "hidden", background: `linear-gradient(155deg,${c.c1},${c.c2})`, position: "relative", boxShadow: sel ? `0 0 0 2px ${acc}` : "0 4px 12px rgba(0,0,0,.4)" }}>
-                        {c.cover && <img src={c.cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
-                      </div>
-                      <div style={{ fontWeight: 600, fontSize: 10.5, color: sel ? "#f3f5f8" : "#8a929e", marginTop: 6, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.title}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <button
+            onClick={() => setPhase("results")}
+            style={{ background: "transparent", border: "none", cursor: "pointer", padding: "4px 2px", marginBottom: 14, color: "#8a929e", fontFamily: "var(--font-jakarta)", fontWeight: 700, fontSize: 12 }}
+          >
+            ‹ not it? back to results
+          </button>
 
           <Label>STATUS</Label>
           <div style={{ display: "flex", background: "#12161c", borderRadius: 13, padding: 3, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)", marginBottom: 22 }}>
@@ -379,9 +445,10 @@ export function Add() {
         </div>
       )}
 
-      {!finding && !found && (
+      {/* ===== IDLE ===== */}
+      {phase === "idle" && (
         <div style={{ textAlign: "center", color: "#4a525d", fontSize: 13, padding: "36px 30px", lineHeight: 1.6 }}>
-          Type a show and tap <b style={{ color: "#8a929e" }}>Search</b> — Senpai pulls its real artwork, year, and genres from the web.
+          Type a show and hit <b style={{ color: "#8a929e" }}>Enter</b> — Senpai searches the web (typos welcome) and shows you the matches to pick from.
         </div>
       )}
     </div>
