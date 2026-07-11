@@ -179,6 +179,12 @@ export function Detail() {
   const submitFact = async () => {
     const txt = factDraft.trim();
     if (!txt) return;
+    // per-user idempotency: same person can't re-post the same fact on this show
+    const normText = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+    if (e.facts.some((f) => f.user === me && normText(f.text) === normText(txt))) {
+      flash("You already added this exact fact");
+      return;
+    }
     try {
       await postFact(e.id, me, txt);
       await refresh();
