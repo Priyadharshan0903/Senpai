@@ -59,7 +59,7 @@ export function BottomNav() {
         display: "grid",
         gridTemplateColumns: "repeat(4,1fr)",
         alignItems: "start",
-        padding: "10px 8px calc(8px + env(safe-area-inset-bottom, 0px))",
+        padding: "8px 8px max(calc(env(safe-area-inset-bottom, 0px) - 12px), 8px)",
         background: "linear-gradient(0deg,#0a0c0f 74%,transparent)",
         borderTop: "1px solid rgba(255,255,255,.05)",
       }}

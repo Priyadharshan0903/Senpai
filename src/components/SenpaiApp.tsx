@@ -79,7 +79,7 @@ export function SenpaiApp() {
                   top: "env(safe-area-inset-top, 0px)",
                   left: 0,
                   right: 0,
-                  bottom: "calc(60px + env(safe-area-inset-bottom, 0px))",
+                  bottom: "calc(50px + max(calc(env(safe-area-inset-bottom, 0px) - 12px), 8px))",
                   overflowY: screen === "feed" ? "hidden" : "auto",
                   overflowX: "hidden",
                   WebkitOverflowScrolling: "touch",
@@ -105,7 +105,7 @@ export function SenpaiApp() {
         <div
           style={{
             position: "absolute",
-            bottom: "calc(74px + env(safe-area-inset-bottom, 0px))",
+            bottom: "calc(64px + max(calc(env(safe-area-inset-bottom, 0px) - 12px), 8px))",
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 9998,
