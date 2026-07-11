@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSenpai } from "@/store";
 import { CoverArt } from "@/components/CoverArt";
 import { Avatar, PlusIcon } from "@/components/bits";
@@ -21,14 +21,102 @@ export function Feed() {
     openDetail,
     reactEmote,
     toggleFavorite,
+    refresh,
   } = useSenpai();
-  if (!data) return null;
-  const profiles = data.profiles;
-  const meP = me ? resolvePerson(profiles, me) : null;
+  const profiles = data?.profiles ?? [];
+  const meP = data && me ? resolvePerson(profiles, me) : null;
 
-  const filtered = data.entries.filter(
+  const filtered = (data?.entries ?? []).filter(
     (e) => genreFilter === "All" || e.genres.includes(genreFilter)
   );
+
+  // ── infinite scroll: render cards in batches; the sentinel row loads the next batch
+  const BATCH = 8;
+  const [visibleCount, setVisibleCount] = useState(BATCH);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // start over from the first batch whenever the genre filter changes
+  const [prevFilter, setPrevFilter] = useState(genreFilter);
+  if (prevFilter !== genreFilter) {
+    setPrevFilter(genreFilter);
+    setVisibleCount(BATCH);
+  }
+  const hasMore = visibleCount < filtered.length;
+  useEffect(() => {
+    const root = scrollerRef.current;
+    const node = sentinelRef.current;
+    if (!root || !node || !hasMore) return;
+    const io = new IntersectionObserver(
+      (entries) => entries[0].isIntersecting && setVisibleCount((v) => v + BATCH),
+      { root, rootMargin: "400px" }
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, [hasMore]);
+
+  // ── pull-to-refresh: drag down from the top of the list to reload
+  const PULL_TRIGGER = 70;
+  const [pull, setPull] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullRef = useRef(0);
+  const startY = useRef<number | null>(null);
+  const busy = useRef(false);
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const setP = (v: number) => {
+      pullRef.current = v;
+      setPull(v);
+    };
+    const onStart = (e: TouchEvent) => {
+      startY.current = !busy.current && el.scrollTop <= 0 ? e.touches[0].clientY : null;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (startY.current == null) return;
+      const dy = e.touches[0].clientY - startY.current;
+      if (dy > 0 && el.scrollTop <= 0) {
+        e.preventDefault(); // take over from the native rubber-band
+        setDragging(true);
+        setP(Math.min(dy * 0.45, 110));
+      } else if (pullRef.current > 0) {
+        setDragging(false);
+        setP(0);
+      }
+    };
+    const onEnd = async () => {
+      if (startY.current == null) return;
+      startY.current = null;
+      setDragging(false);
+      if (pullRef.current >= PULL_TRIGGER) {
+        busy.current = true;
+        setRefreshing(true);
+        setP(54); // park the spinner while the reload runs
+        try {
+          await refresh();
+        } finally {
+          busy.current = false;
+          setRefreshing(false);
+          setP(0);
+        }
+      } else {
+        setP(0);
+      }
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", onEnd);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, [refresh]);
+
+  if (!data) return null;
+  const shown = filtered.slice(0, visibleCount);
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -68,7 +156,47 @@ export function Feed() {
       </div>
 
       {/* ===== scrollable middle: genre chips + cards ===== */}
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: 24, WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+      <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        {/* pull-to-refresh spinner */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            zIndex: 6,
+            pointerEvents: "none",
+            transform: `translateY(${pull - 44}px)`,
+            opacity: Math.min(pull / PULL_TRIGGER, 1),
+            transition: dragging ? "none" : "transform .25s ease, opacity .25s ease",
+          }}
+        >
+          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#12161c", boxShadow: "0 4px 14px rgba(0,0,0,.5), inset 0 0 0 1.5px rgba(255,255,255,.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={acc}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              style={{
+                animation: refreshing ? "cnSpin .7s linear infinite" : "none",
+                transform: refreshing ? undefined : `rotate(${pull * 2.4}deg)`,
+              }}
+            >
+              <path d="M21 12a9 9 0 1 1-3-6.7" />
+            </svg>
+          </div>
+        </div>
+
+        <div
+          ref={scrollerRef}
+          style={{ height: "100%", overflowY: "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
+        >
+          <div style={{ paddingBottom: 24, transform: `translateY(${pull}px)`, transition: dragging ? "none" : "transform .25s ease" }}>
         {/* genre filters */}
         <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 18px 14px" }}>
           {GENRE_FILTERS.map((g) => {
@@ -97,7 +225,7 @@ export function Feed() {
 
         {/* cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "0 16px" }}>
-          {filtered.map((e) => {
+          {shown.map((e) => {
             const w0 = e.watches[0];
             const adder = resolvePerson(profiles, w0.user);
             const mc = MOOD_META[w0.mood] || "#8a929e";
@@ -197,11 +325,20 @@ export function Feed() {
               </div>
             );
           })}
+          {hasMore && (
+            <div ref={sentinelRef} style={{ display: "flex", justifyContent: "center", padding: "20px 0 8px" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={acc} strokeWidth={2.5} strokeLinecap="round" style={{ animation: "cnSpin .7s linear infinite" }}>
+                <path d="M21 12a9 9 0 1 1-3-6.7" />
+              </svg>
+            </div>
+          )}
           {filtered.length === 0 && (
             <div style={{ textAlign: "center", color: "#5a636f", fontSize: 13, padding: "40px 20px" }}>
               No logs in <b style={{ color: "#9aa3af" }}>{genreFilter}</b> yet.
             </div>
           )}
+        </div>
+          </div>
         </div>
       </div>
     </div>

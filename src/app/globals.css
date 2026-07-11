@@ -101,6 +101,11 @@ button {
     transform: translateX(0);
   }
 }
+@keyframes cnSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @keyframes cnFade {
   0% {
     opacity: 0;
