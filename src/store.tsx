@@ -8,8 +8,8 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { AppData } from "@/lib/types";
-import { getData, toggleEmote, toggleFav } from "@/lib/api";
+import { ActivityEvent, AppData } from "@/lib/types";
+import { getActivity, getData, startSession, toggleEmote, toggleFav } from "@/lib/api";
 import { ACCENT } from "@/lib/theme";
 
 export type Stage = "pick" | "add" | "app";
@@ -28,8 +28,13 @@ interface SenpaiCtx {
   toast: string;
   addPrefill: string | null;
   wlUsers: string[] | null; // watchlist screen: whose lists are shown (null = just me)
+  activity: ActivityEvent[]; // crew events, newest first (mine excluded)
+  activityOpen: boolean;
+  unread: number; // events newer than my locally-stored last-seen mark
 
   refresh: () => Promise<void>;
+  openActivity: () => void;
+  closeActivity: () => void;
   selectProfile: (id: string) => void;
   openAddProfile: () => void;
   switchProfile: () => void;
@@ -51,6 +56,7 @@ interface SenpaiCtx {
 
 const Ctx = createContext<SenpaiCtx | null>(null);
 const ME_KEY = "senpai.me";
+const seenKey = (id: string) => `senpai.seen.${id}`;
 
 export function SenpaiProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppData | null>(null);
@@ -66,6 +72,38 @@ export function SenpaiProvider({ children }: { children: React.ReactNode }) {
   const addPrefillRef = useRef<string | null>(null);
   const [addPrefill, setAddPrefill] = useState<string | null>(null);
   const [wlUsers, setWlUsers] = useState<string[] | null>(null);
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const newestSeenRef = useRef(0); // newest event `at` from the previous load
+
+  const loadActivity = useCallback(async (meId: string) => {
+    try {
+      const { events } = await getActivity(meId);
+      setActivity(events);
+      const lastSeen = Number(localStorage.getItem(seenKey(meId)) || 0);
+      setUnread(events.filter((ev) => ev.at > lastSeen).length);
+      // toast when something genuinely new lands mid-session
+      const newest = events[0]?.at || 0;
+      if (newestSeenRef.current && newest > newestSeenRef.current && newest > lastSeen) {
+        const ev = events[0];
+        setToast(
+          ev.type === "emote"
+            ? "New reaction from the crew"
+            : ev.type === "watchlist"
+              ? "Crew watchlist update"
+              : ev.type === "fact"
+                ? "New fact from the crew"
+                : "New log from the crew"
+        );
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast(""), 1900);
+      }
+      newestSeenRef.current = newest;
+    } catch {
+      // notifications are best-effort; never block the app on them
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(ME_KEY) : null;
@@ -73,18 +111,21 @@ export function SenpaiProvider({ children }: { children: React.ReactNode }) {
       const d = await getData(stored || undefined);
       setData(d);
       setError(null);
+      if (stored) loadActivity(stored);
     } catch (e) {
       setError(e instanceof Error ? e.message : "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadActivity]);
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(ME_KEY) : null;
     if (stored) {
       setMe(stored);
       setStage("app");
+      // re-mint the session cookie so mutations stay authorized
+      startSession(stored).catch(() => {});
     }
     refresh();
   }, [refresh]);
@@ -102,6 +143,7 @@ export function SenpaiProvider({ children }: { children: React.ReactNode }) {
     setStage("app");
     setScreenState("feed");
     setDetailId(null);
+    startSession(id).catch(() => {});
     refresh();
   };
 
@@ -118,7 +160,18 @@ export function SenpaiProvider({ children }: { children: React.ReactNode }) {
     toast,
     addPrefill,
     wlUsers,
+    activity,
+    activityOpen,
+    unread,
     refresh,
+    openActivity: () => setActivityOpen(true),
+    closeActivity: () => {
+      setActivityOpen(false);
+      setUnread(0);
+      if (me && typeof window !== "undefined") {
+        localStorage.setItem(seenKey(me), String(Date.now()));
+      }
+    },
     selectProfile: (id) => enterApp(id),
     openAddProfile: () => setStage("add"),
     switchProfile: () => {

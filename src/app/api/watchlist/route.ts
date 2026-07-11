@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb, schema, newId, now } from "@/db";
 import { norm } from "@/lib/theme";
 import { isUniqueViolation } from "@/db/mappers";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest) {
     if (!b?.user || !title) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
+    const denied = requireUser(req, b.user);
+    if (denied) return denied;
     const db = await getDb();
     const normTitle = norm(title);
     const row = {
@@ -60,6 +63,8 @@ export async function DELETE(req: NextRequest) {
     if (!id || !user) {
       return NextResponse.json({ error: "missing id/user" }, { status: 400 });
     }
+    const denied = requireUser(req, user);
+    if (denied) return denied;
     const db = await getDb();
     const doc = await db.select().from(schema.watchlist).where(eq(schema.watchlist.id, id)).get();
     if (!doc) return NextResponse.json({ ok: true, gone: true });
@@ -82,6 +87,8 @@ export async function PATCH(req: NextRequest) {
     if (!id || !user || !["Watching", "Plan"].includes(status)) {
       return NextResponse.json({ error: "missing/invalid fields" }, { status: 400 });
     }
+    const denied = requireUser(req, user);
+    if (denied) return denied;
     const db = await getDb();
     const doc = await db.select().from(schema.watchlist).where(eq(schema.watchlist.id, id)).get();
     if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });

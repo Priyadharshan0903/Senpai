@@ -81,6 +81,8 @@ export const emotes = sqliteTable(
     animeId: text("anime_id").notNull().references(() => anime.id, { onDelete: "cascade" }),
     userId: text("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
     emoji: text("emoji").notNull(),
+    // 0 = legacy row from before reactions were timestamped
+    at: integer("at").notNull().default(0),
   },
   (t) => [uniqueIndex("uq_emote").on(t.animeId, t.userId, t.emoji)]
 );

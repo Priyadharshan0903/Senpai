@@ -70,6 +70,25 @@ export interface AppData {
   watchlist: WatchlistItem[];
 }
 
+/** One crew event in the notification feed (GET /api/activity). */
+export interface ActivityEvent {
+  id: string; // synthetic unique key
+  type: "log" | "emote" | "watchlist" | "fact";
+  user: string; // profile id of who did it
+  at: number; // ms timestamp
+  entryId: string | null; // anime entry to open, when the crew has logged it
+  title: string;
+  cover: string;
+  c1: string;
+  c2: string;
+  rating?: number; // log
+  mood?: string; // log
+  reflect?: string; // log — the comment, if one was written
+  emoji?: string; // emote
+  text?: string; // fact
+  status?: string; // watchlist: "Watching" | "Plan"
+}
+
 export interface AniMeta {
   cover: string;
   color: string;

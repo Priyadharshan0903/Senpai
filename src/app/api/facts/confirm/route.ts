@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,8 @@ export async function POST(req: NextRequest) {
     if (!factId || !user) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
+    const denied = requireUser(req, user);
+    if (denied) return denied;
     const db = await getDb();
     const fact = await db.select().from(schema.facts).where(eq(schema.facts.id, factId)).get();
     if (!fact) return NextResponse.json({ error: "fact not found" }, { status: 404 });

@@ -76,7 +76,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_confirm ON fact_confirms (fact_id, user_id)
 CREATE TABLE IF NOT EXISTS emotes (
   anime_id TEXT NOT NULL REFERENCES anime(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  emoji TEXT NOT NULL
+  emoji TEXT NOT NULL,
+  at INTEGER NOT NULL DEFAULT 0
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_emote ON emotes (anime_id, user_id, emoji);
 
@@ -130,13 +131,27 @@ function client(): Client {
   return cache.client;
 }
 
+// Additive migrations for databases created before a column existed. Each runs
+// every boot and is a no-op (duplicate-column error, swallowed) once applied.
+async function migrate(c: Client): Promise<void> {
+  const steps = ["ALTER TABLE emotes ADD COLUMN at INTEGER NOT NULL DEFAULT 0"];
+  for (const sql of steps) {
+    try {
+      await c.execute(sql);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/duplicate column/i.test(msg)) throw err;
+    }
+  }
+}
+
 /** Get the ORM, guaranteeing the schema exists (bootstraps on first call). */
 export async function getDb(): Promise<Db> {
   if (!cache.orm) {
     const c = client();
     cache.ready = c
       .executeMultiple("PRAGMA foreign_keys = ON;" + DDL)
-      .then(() => undefined);
+      .then(() => migrate(c));
     cache.orm = drizzle(c, { schema });
   }
   await cache.ready;

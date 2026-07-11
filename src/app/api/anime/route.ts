@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb, schema, now } from "@/db";
+import { readSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,12 @@ export async function PATCH(req: NextRequest) {
     const { id, cover } = await req.json();
     if (!id || typeof cover !== "string") {
       return NextResponse.json({ error: "missing id/cover" }, { status: 400 });
+    }
+    if (!readSession(req)) {
+      return NextResponse.json(
+        { error: "session expired — pick your profile again" },
+        { status: 401 }
+      );
     }
     const trimmed = cover.trim();
     if (trimmed && !HTTP_URL.test(trimmed)) {

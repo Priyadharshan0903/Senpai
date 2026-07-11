@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq, or } from "drizzle-orm";
 import { getDb, schema, newId, now, Db } from "@/db";
 import { norm } from "@/lib/theme";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +39,14 @@ async function findDup(db: Db, anilistId: number | null | undefined, title: stri
 export async function POST(req: NextRequest) {
   try {
     const b: LogBody = await req.json();
-    if (!b.user || !b.title || !b.rating || !b.mood || !b.platform) {
+    if (!b.user || !b.title || !b.mood || !b.platform) {
       return NextResponse.json({ error: "missing required fields" }, { status: 400 });
     }
+    if (typeof b.rating !== "number" || Number.isNaN(b.rating) || b.rating < 0 || b.rating > 10) {
+      return NextResponse.json({ error: "rating must be a number from 0 to 10" }, { status: 400 });
+    }
+    const denied = requireUser(req, b.user);
+    if (denied) return denied;
     const db = await getDb();
 
     // Logging a show clears it from the logger's own watchlist (others keep theirs).
@@ -74,7 +80,7 @@ export async function POST(req: NextRequest) {
       }
       await db.insert(schema.watches).values({ ...watchRow, animeId: dup.id }).run();
       await db.update(schema.anime)
-        .set({ time: "now", updatedAt: now(), cover: dup.cover || b.cover || "" })
+        .set({ updatedAt: now(), cover: dup.cover || b.cover || "" })
         .where(eq(schema.anime.id, dup.id))
         .run();
       return NextResponse.json({ ok: true, id: dup.id, appended: true, title: dup.title });
@@ -97,7 +103,6 @@ export async function POST(req: NextRequest) {
         c1: b.c1 || "#1a1e25",
         c2: b.c2 || "#141821",
         cover: b.cover || "",
-        time: "now",
         emotesBase: "{}",
         createdAt: now(),
         updatedAt: now(),
@@ -131,6 +136,8 @@ export async function PATCH(req: NextRequest) {
     if (!b.animeId || !b.user) {
       return NextResponse.json({ error: "missing animeId/user" }, { status: 400 });
     }
+    const denied = requireUser(req, b.user);
+    if (denied) return denied;
     const db = await getDb();
     const watch = await db
       .select()
@@ -142,7 +149,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const updates: Partial<typeof watch> = {};
-    if (typeof b.rating === "number" && b.rating > 0) updates.rating = b.rating;
+    if (typeof b.rating === "number" && b.rating >= 0 && b.rating <= 10) updates.rating = b.rating;
     if (typeof b.mood === "string" && b.mood) updates.mood = b.mood;
     if (typeof b.platform === "string" && b.platform) updates.platform = b.platform;
     if (typeof b.reflect === "string") updates.reflect = b.reflect.trim();

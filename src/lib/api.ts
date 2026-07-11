@@ -1,4 +1,4 @@
-import { AppData } from "./types";
+import { ActivityEvent, AppData } from "./types";
 
 async function j<T>(res: Response): Promise<T> {
   const data = await res.json();
@@ -11,6 +11,24 @@ export async function getData(me?: string): Promise<AppData> {
     cache: "no-store",
   });
   return j<AppData>(res);
+}
+
+/** Crew events for the notification feed, newest first, excluding my own. */
+export async function getActivity(me: string): Promise<{ events: ActivityEvent[] }> {
+  return j(
+    await fetch("/api/activity?me=" + encodeURIComponent(me), { cache: "no-store" })
+  );
+}
+
+/** Mint the signed session cookie for a profile; mutations 401 without it. */
+export async function startSession(user: string): Promise<{ ok: boolean }> {
+  return j(
+    await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user }),
+    })
+  );
 }
 
 export async function seedDatabase(): Promise<{ ok: boolean }> {

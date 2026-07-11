@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, schema, newId, now } from "@/db";
 import { profileToClient, isUniqueViolation } from "@/db/mappers";
 import { ACCENT } from "@/lib/theme";
+import { attachSessionCookie, requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,10 @@ export async function POST(req: NextRequest) {
       }
       throw err;
     }
-    return NextResponse.json(profileToClient(row));
+    // creating a profile means becoming it — start the session right away
+    const res = NextResponse.json(profileToClient(row));
+    attachSessionCookie(res, row.id);
+    return res;
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -49,6 +53,8 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const id = body?.id;
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+    const denied = requireUser(req, id);
+    if (denied) return denied;
 
     const db = await getDb();
     const existing = await db.select().from(schema.profiles).where(eq(schema.profiles.id, id)).get();

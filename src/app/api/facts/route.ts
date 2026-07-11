@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb, schema, newId, now } from "@/db";
 import { normText, isUniqueViolation } from "@/db/mappers";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest) {
     if (!animeId || !user || !t) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
+    const denied = requireUser(req, user);
+    if (denied) return denied;
     const db = await getDb();
     const show = await db.select().from(schema.anime).where(eq(schema.anime.id, animeId)).get();
     if (!show) return NextResponse.json({ error: "not found" }, { status: 404 });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { requireUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,8 @@ export async function POST(req: NextRequest) {
     if (!animeId || !user) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
+    const denied = requireUser(req, user);
+    if (denied) return denied;
     const db = await getDb();
     const cond = and(eq(schema.favs.animeId, animeId), eq(schema.favs.userId, user));
     const existing = await db.select().from(schema.favs).where(cond).get();

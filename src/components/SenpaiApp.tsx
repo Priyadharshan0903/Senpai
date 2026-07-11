@@ -13,6 +13,7 @@ import { Profile } from "@/components/screens/Profile";
 import { Add } from "@/components/screens/Add";
 import { Detail } from "@/components/screens/Detail";
 import { BottomNav } from "@/components/BottomNav";
+import { ActivityPanel } from "@/components/ActivityPanel";
 
 function Splash({ acc, children }: { acc: string; children: React.ReactNode }) {
   return (
@@ -38,7 +39,7 @@ function Splash({ acc, children }: { acc: string; children: React.ReactNode }) {
 }
 
 export function SenpaiApp() {
-  const { acc, data, loading, error, stage, screen, detailId, toast, refresh } = useSenpai();
+  const { acc, data, loading, error, stage, screen, detailId, toast, refresh, activityOpen } = useSenpai();
   return (
     <div
       style={{
@@ -95,6 +96,7 @@ export function SenpaiApp() {
               </div>
               {detailId && <Detail />}
               <BottomNav />
+              {activityOpen && <ActivityPanel />}
             </>
           )}
         </>

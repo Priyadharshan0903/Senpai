@@ -22,6 +22,8 @@ export function Feed() {
     reactEmote,
     toggleFavorite,
     refresh,
+    unread,
+    openActivity,
   } = useSenpai();
   const profiles = data?.profiles ?? [];
   const meP = data && me ? resolvePerson(profiles, me) : null;
@@ -140,6 +142,23 @@ export function Feed() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={openActivity}
+            aria-label="Crew activity"
+            style={{ position: "relative", width: 40, height: 40, borderRadius: 13, border: "none", cursor: "pointer", background: "#12161c", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.06)" }}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#9aa3af" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+            </svg>
+            {unread > 0 && (
+              <span
+                style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 9, background: acc, color: "#0a0c0f", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 0 2px #0a0c0f" }}
+              >
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setScreen("add")}
             style={{ width: 40, height: 40, borderRadius: 13, border: "none", cursor: "pointer", background: acc, display: "flex", alignItems: "center", justifyContent: "center" }}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { asc, desc } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { profileToClient, parseJson } from "@/db/mappers";
+import { timeAgo } from "@/lib/derive";
 import { AppData, Entry, WatchlistItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
         c1: a.c1,
         c2: a.c2,
         cover: a.cover,
-        time: a.time,
+        time: timeAgo(a.updatedAt),
         emotes,
         mine: mineBy[a.id] || [],
         favs: favsBy[a.id] || [],
