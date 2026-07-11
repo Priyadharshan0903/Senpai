@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import styles from "./bits.module.css";
 
 /* eslint-disable @next/next/no-img-element */
 export function Avatar({
@@ -16,21 +17,10 @@ export function Avatar({
 }) {
   return (
     <span
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius,
-        overflow: "hidden",
-        flex: "none",
-        background: bg,
-        display: "block",
-      }}
+      className="avatar-round flex-none"
+      style={{ width: size, height: size, borderRadius: radius, background: bg }}
     >
-      <img
-        src={src}
-        alt=""
-        style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}
-      />
+      <img src={src} alt="" className="img-cover" />
     </span>
   );
 }
@@ -40,63 +30,23 @@ export function LogoMark({ acc, size = 76 }: { acc: string; size?: number }) {
   const s = size / 76; // base is 76
   return (
     <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 21 * s,
-        background: "linear-gradient(160deg,#1c222b,#0c0f14)",
-        boxShadow:
-          "0 14px 34px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.08)",
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+      className={`${styles.logoMark} relative flex-center`}
+      style={{ width: size, height: size, borderRadius: 21 * s }}
     >
-      <div style={{ position: "relative", width: 46 * s, height: 42 * s }}>
+      <div className="relative" style={{ width: 46 * s, height: 42 * s }}>
         <span
-          style={{
-            position: "absolute",
-            left: 1 * s,
-            bottom: 3 * s,
-            width: 19 * s,
-            height: 27 * s,
-            borderRadius: 5 * s,
-            background: "linear-gradient(160deg,#3a8f86,#1e3a52)",
-            transform: "rotate(-17deg)",
-            boxShadow: "0 2px 6px rgba(0,0,0,.4)",
-          }}
+          className={styles.bookLeft}
+          style={{ left: 1 * s, bottom: 3 * s, width: 19 * s, height: 27 * s, borderRadius: 5 * s }}
         />
         <span
-          style={{
-            position: "absolute",
-            right: 1 * s,
-            bottom: 3 * s,
-            width: 19 * s,
-            height: 27 * s,
-            borderRadius: 5 * s,
-            background: "linear-gradient(160deg,#5b8cc9,#22304a)",
-            transform: "rotate(17deg)",
-            boxShadow: "0 2px 6px rgba(0,0,0,.4)",
-          }}
+          className={styles.bookRight}
+          style={{ right: 1 * s, bottom: 3 * s, width: 19 * s, height: 27 * s, borderRadius: 5 * s }}
         />
         <span
-          style={{
-            position: "absolute",
-            left: "50%",
-            bottom: 2 * s,
-            transform: "translateX(-50%)",
-            width: 20 * s,
-            height: 29 * s,
-            borderRadius: 5 * s,
-            background: acc,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 3px 9px rgba(0,0,0,.5)",
-          }}
+          className={`${styles.bookCenter} flex-center`}
+          style={{ bottom: 2 * s, width: 20 * s, height: 29 * s, borderRadius: 5 * s, background: acc }}
         >
-          <span style={{ color: "#0a0c0f", fontSize: 13 * s, fontWeight: 700 }}>★</span>
+          <span className={styles.bookStar} style={{ fontSize: 13 * s }}>★</span>
         </span>
       </div>
     </div>
@@ -117,23 +67,11 @@ export function Stars({
 }) {
   const cells = [1, 2, 3, 4, 5].map((i) => (value >= i ? 100 : value >= i - 0.5 ? 50 : 0));
   return (
-    <div style={{ display: "flex", gap }}>
+    <div className="flex" style={{ gap }}>
       {cells.map((pct, i) => (
-        <span
-          key={i}
-          style={{ position: "relative", fontSize: size, lineHeight: 1, color: "#2a3038" }}
-        >
+        <span key={i} className={`${styles.starCell} relative`} style={{ fontSize: size }}>
           <span>★</span>
-          <span
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              overflow: "hidden",
-              width: pct + "%",
-              color: acc,
-            }}
-          >
+          <span className={styles.starFill} style={{ width: pct + "%", color: acc }}>
             ★
           </span>
         </span>
@@ -158,7 +96,7 @@ export function StarPicker({
 }) {
   const cells = [1, 2, 3, 4, 5].map((i) => (value >= i ? 100 : value >= i - 0.5 ? 50 : 0));
   return (
-    <div style={{ display: "flex", gap }}>
+    <div className="flex" style={{ gap }}>
       {cells.map((pct, idx) => {
         const i = idx + 1;
         return (
@@ -169,25 +107,11 @@ export function StarPicker({
               const half = e.clientX - r.left < r.width / 2;
               onPick(half ? i - 0.5 : i);
             }}
-            style={{
-              position: "relative",
-              cursor: "pointer",
-              fontSize: size,
-              lineHeight: 1,
-              color: "#2a3038",
-            }}
+            className={`${styles.starCell} relative pointer`}
+            style={{ fontSize: size }}
           >
             <span>★</span>
-            <span
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                overflow: "hidden",
-                width: pct + "%",
-                color: acc,
-              }}
-            >
+            <span className={styles.starFill} style={{ width: pct + "%", color: acc }}>
               ★
             </span>
           </span>

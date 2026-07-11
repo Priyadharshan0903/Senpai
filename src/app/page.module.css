@@ -1,0 +1,47 @@
+/* pre-hydration blank while `framed` is unknown */
+.boot {
+  min-height: 100vh;
+  background: var(--bg-deep);
+}
+
+/* phone / installed-PWA: app fills the screen */
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-base);
+}
+
+/* desktop: backdrop behind the decorative device frame */
+.stage {
+  min-height: 100vh;
+  padding: var(--space-28) var(--space-12);
+  background: radial-gradient(130% 90% at 50% -10%, #14171d 0%, var(--bg-base) 50%, var(--bg-deep) 100%);
+  background-color: var(--bg-deep);
+}
+
+.frame {
+  width: 390px;
+  height: 844px;
+  border-radius: 48px;
+  padding: 11px;
+  background: linear-gradient(160deg, #1c2128, var(--bg-base) 60%);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.75), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.notch {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 112px;
+  height: 26px;
+  background: var(--bg-deep);
+  border-radius: 0 0 var(--radius-16) var(--radius-16);
+  z-index: 60;
+}
+
+.screen {
+  border-radius: 38px;
+  background: var(--bg-base);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.06);
+}

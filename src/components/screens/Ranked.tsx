@@ -4,6 +4,8 @@ import React from "react";
 import { useSenpai } from "@/store";
 import { PlusIcon } from "@/components/bits";
 import { avg, MOOD_META, moodBgOf } from "@/lib/derive";
+import { RenderWhen } from "@/components/RenderWhen";
+import styles from "./Ranked.module.css";
 
 /* eslint-disable @next/next/no-img-element */
 export function Ranked() {
@@ -13,18 +15,18 @@ export function Ranked() {
   const ranked = [...data.entries].sort((a, b) => avg(b) - avg(a));
 
   return (
-    <div style={{ padding: "8px 18px 24px" }}>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 18 }}>
+    <div className={styles.screen}>
+      <div className={`${styles.header} flex justify-between`}>
         <div>
-          <div className="mono" style={{ fontSize: 10, color: acc, letterSpacing: "1.5px" }}>BY CREW AVERAGE</div>
-          <div style={{ fontWeight: 800, fontSize: 27, letterSpacing: "-.8px", color: "#f3f5f8", marginTop: 2 }}>The ranking</div>
+          <div className="eyebrow" style={{ color: acc }}>BY CREW AVERAGE</div>
+          <div className={`${styles.title} screen-title`}>The ranking</div>
         </div>
-        <button onClick={() => setScreen("add")} style={{ width: 38, height: 38, borderRadius: 12, border: "none", cursor: "pointer", background: acc, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <button onClick={() => setScreen("add")} className={`${styles.addBtn} flex-center pointer`} style={{ background: acc }}>
           <PlusIcon stroke="#0a0c0f" size={19} />
         </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="flex-col gap-10">
         {ranked.map((e, i) => {
           const moods: Record<string, number> = {};
           e.watches.forEach((w) => (moods[w.mood] = (moods[w.mood] || 0) + 1));
@@ -35,25 +37,27 @@ export function Ranked() {
             <div
               key={e.id}
               onClick={() => openDetail(e.id)}
-              style={{ display: "flex", alignItems: "center", gap: 13, padding: 10, borderRadius: 15, background: "#12161c", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.05)", cursor: "pointer" }}
+              className={`${styles.row} flex items-center pointer`}
             >
-              <span className="mono" style={{ flex: "none", width: 26, textAlign: "center", fontWeight: 700, fontSize: 17, color: rankColor }}>{i + 1}</span>
-              <div style={{ width: 46, height: 60, borderRadius: 8, flex: "none", background: `linear-gradient(155deg,${e.c1},${e.c2})`, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.1)", position: "relative", overflow: "hidden" }}>
-                {e.cover && <img src={e.cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+              <span className={`${styles.rank} mono flex-none text-center`} style={{ color: rankColor }}>{i + 1}</span>
+              <div className={`${styles.cover} flex-none relative overflow-hidden`} style={{ background: `linear-gradient(155deg,${e.c1},${e.c2})` }}>
+                <RenderWhen.If isTrue={!!e.cover}>
+                  <img src={e.cover} alt="" className="absolute-fill img-cover" />
+                </RenderWhen.If>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: "#f3f5f8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.title}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 5 }}>
-                  <span style={{ padding: "3px 9px", borderRadius: 14, fontSize: 10.5, fontWeight: 700, background: moodBgOf(mc), color: mc }}>{topMood}</span>
-                  <span style={{ fontSize: 11.5, color: "#8a929e" }}>{e.watches.length} logged</span>
+              <div className="flex-1 minw-0">
+                <div className={`${styles.rowTitle} ${styles.ellipsis}`}>{e.title}</div>
+                <div className={`${styles.meta} flex items-center gap-8`}>
+                  <span className={styles.moodPill} style={{ background: moodBgOf(mc), color: mc }}>{topMood}</span>
+                  <span className={styles.loggedCount}>{e.watches.length} logged</span>
                 </div>
               </div>
-              <div style={{ flex: "none", textAlign: "right" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, color: acc, fontWeight: 800, fontSize: 17 }}>
-                  <span style={{ fontSize: 13 }}>★</span>
+              <div className={`${styles.score} flex-none`}>
+                <div className={`${styles.scoreValue} flex items-center gap-4`} style={{ color: acc }}>
+                  <span className={styles.star}>★</span>
                   <span className="mono">{avg(e).toFixed(1)}</span>
                 </div>
-                <div className="mono" style={{ fontSize: 9.5, color: "#5a636f", marginTop: 2 }}>avg /10</div>
+                <div className={`${styles.avgLabel} mono`}>avg /10</div>
               </div>
             </div>
           );

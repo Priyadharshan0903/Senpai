@@ -3,6 +3,7 @@
 import React from "react";
 import { useSenpai } from "@/store";
 import { LogoMark } from "@/components/bits";
+import { RenderWhen } from "@/components/RenderWhen";
 import { Picker } from "@/components/screens/Picker";
 import { AddProfile } from "@/components/screens/AddProfile";
 import { Feed } from "@/components/screens/Feed";
@@ -14,24 +15,11 @@ import { Add } from "@/components/screens/Add";
 import { Detail } from "@/components/screens/Detail";
 import { BottomNav } from "@/components/BottomNav";
 import { ActivityPanel } from "@/components/ActivityPanel";
+import styles from "./SenpaiApp.module.css";
 
 function Splash({ acc, children }: { acc: string; children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        zIndex: 90,
-        background: "radial-gradient(120% 70% at 50% 0%, #16202b 0%, #0a0c0f 55%)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 18,
-        padding: 30,
-        textAlign: "center",
-      }}
-    >
+    <div className={styles.splash}>
       <LogoMark acc={acc} size={64} />
       {children}
     </div>
@@ -39,92 +27,68 @@ function Splash({ acc, children }: { acc: string; children: React.ReactNode }) {
 }
 
 export function SenpaiApp() {
-  const { acc, data, loading, error, stage, screen, detailId, toast, refresh, activityOpen } = useSenpai();
+  const { acc, loading, error, stage, screen, detailId, toast, refresh, activityOpen } = useSenpai();
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        overflow: "hidden",
-        background: "#0a0c0f",
-      }}
-    >
-      {loading && (
+    <div className={styles.shell}>
+      <RenderWhen.If isTrue={loading}>
         <Splash acc={acc}>
-          <div className="mono" style={{ fontSize: 11, color: "#8a929e", letterSpacing: "1.5px" }}>LOADING THE JOURNAL...</div>
+          <div className={`mono ${styles.splashHint}`}>LOADING THE JOURNAL...</div>
         </Splash>
-      )}
+      </RenderWhen.If>
 
-      {!loading && error && (
+      <RenderWhen.If isTrue={!loading && !!error}>
         <Splash acc={acc}>
-          <div style={{ fontWeight: 800, fontSize: 20, color: "#f3f5f8" }}>Can&apos;t reach the journal</div>
-          <div style={{ fontSize: 13, color: "#8a929e", lineHeight: 1.5, maxWidth: 280 }}>
-            {error}
+          <div className={styles.splashTitle}>Can&apos;t reach the journal</div>
+          <div className={styles.splashBody}>{error}</div>
+          <button onClick={refresh} className={styles.retryBtn}>
+            Retry
+          </button>
+        </Splash>
+      </RenderWhen.If>
+
+      <RenderWhen.If isTrue={!loading && !error}>
+        <RenderWhen.If isTrue={stage === "pick"}>
+          <Picker />
+        </RenderWhen.If>
+        <RenderWhen.If isTrue={stage === "add"}>
+          <AddProfile />
+        </RenderWhen.If>
+
+        <RenderWhen.If isTrue={stage === "app"}>
+          {/* Feed owns its own scroll (pinned header); other screens scroll here */}
+          <div className={`${styles.content} ${screen === "feed" ? styles.contentPinned : ""}`}>
+            <RenderWhen.If isTrue={screen === "feed"}>
+              <Feed />
+            </RenderWhen.If>
+            <RenderWhen.If isTrue={screen === "ranked"}>
+              <Ranked />
+            </RenderWhen.If>
+            <RenderWhen.If isTrue={screen === "watchlist"}>
+              <Watchlist />
+            </RenderWhen.If>
+            <RenderWhen.If isTrue={screen === "friends"}>
+              <Friends />
+            </RenderWhen.If>
+            <RenderWhen.If isTrue={screen === "add"}>
+              <Add />
+            </RenderWhen.If>
+            <RenderWhen.If isTrue={screen === "profile"}>
+              <Profile />
+            </RenderWhen.If>
           </div>
-          <button onClick={refresh} style={{ padding: "12px 26px", borderRadius: 13, border: "none", cursor: "pointer", fontWeight: 800, fontSize: 14, background: acc, color: "#0a0c0f" }}>Retry</button>
-        </Splash>
-      )}
+          <RenderWhen.If isTrue={!!detailId}>
+            <Detail />
+          </RenderWhen.If>
+          <BottomNav />
+          <RenderWhen.If isTrue={activityOpen}>
+            <ActivityPanel />
+          </RenderWhen.If>
+        </RenderWhen.If>
+      </RenderWhen.If>
 
-      {!loading && !error && (
-        <>
-          {stage === "pick" && <Picker />}
-          {stage === "add" && <AddProfile />}
-
-          {stage === "app" && (
-            <>
-              {/* Feed owns its own scroll (pinned header); other screens scroll here */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "env(safe-area-inset-top, 0px)",
-                  left: 0,
-                  right: 0,
-                  bottom: "calc(50px + max(calc(env(safe-area-inset-bottom, 0px) - 12px), 8px))",
-                  overflowY: screen === "feed" ? "hidden" : "auto",
-                  overflowX: "hidden",
-                  WebkitOverflowScrolling: "touch",
-                  overscrollBehavior: "contain",
-                }}
-              >
-                {screen === "feed" && <Feed />}
-                {screen === "ranked" && <Ranked />}
-                {screen === "watchlist" && <Watchlist />}
-                {screen === "friends" && <Friends />}
-                {screen === "add" && <Add />}
-                {screen === "profile" && <Profile />}
-              </div>
-              {detailId && <Detail />}
-              <BottomNav />
-              {activityOpen && <ActivityPanel />}
-            </>
-          )}
-        </>
-      )}
-
-      {/* toast */}
-      {toast && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "calc(64px + max(calc(env(safe-area-inset-bottom, 0px) - 12px), 8px))",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 9998,
-            padding: "12px 22px",
-            borderRadius: 26,
-            background: acc,
-            color: "#0a0c0f",
-            fontWeight: 800,
-            fontSize: 13.5,
-            whiteSpace: "nowrap",
-            boxShadow: "0 10px 30px rgba(91,140,201,.4)",
-            animation: "cnPop .25s ease",
-          }}
-        >
-          {toast}
-        </div>
-      )}
+      <RenderWhen.If isTrue={!!toast}>
+        <div className={styles.toast}>{toast}</div>
+      </RenderWhen.If>
     </div>
   );
 }

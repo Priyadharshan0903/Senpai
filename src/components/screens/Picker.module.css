@@ -1,0 +1,79 @@
+.screen {
+  z-index: 80;
+  background: radial-gradient(120% 70% at 50% 0%, #16202b 0%, var(--bg-base) 55%);
+  animation: cnFade 0.3s ease;
+}
+
+.inner {
+  min-height: 100%;
+  padding: 60px 26px var(--space-40);
+}
+
+.wordmark {
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.8px;
+  color: var(--text-1);
+  margin-top: var(--space-16);
+}
+
+.tagline {
+  font-size: 12.5px;
+  color: var(--text-4);
+  margin-top: var(--space-4);
+}
+
+.prompt {
+  font-weight: 700;
+  font-size: var(--font-size-18);
+  color: var(--text-1);
+  margin-top: 34px;
+  margin-bottom: 22px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px var(--space-14);
+}
+
+.tile {
+  gap: 9px;
+}
+
+.tileAvatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+.tileName {
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.addBox {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  border: 2px dashed rgba(255, 255, 255, 0.16);
+}
+
+.addLabel {
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  color: var(--text-4);
+}
+
+/* keyframes are duplicated per-module: CSS Modules hash animation names, so
+ * referencing the globals.css copies would not resolve */
+@keyframes cnFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,96 @@
+.panel {
+  z-index: 70;
+  background: var(--bg-base);
+  animation: cnSlide 0.25s ease;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.header {
+  padding: var(--space-14) var(--space-18) var(--space-12);
+}
+
+.title {
+  margin-top: var(--space-2);
+}
+
+.closeBtn {
+  background: var(--surface-1);
+  color: var(--text-3);
+  font-size: var(--font-size-18);
+  font-weight: 700;
+}
+
+.events {
+  padding: 0 var(--space-14) calc(var(--space-24) + env(safe-area-inset-bottom, 0px));
+}
+
+.empty {
+  color: var(--text-5);
+  font-size: var(--font-size-13);
+  padding: 60px var(--space-20);
+  line-height: 1.6;
+}
+
+.row {
+  gap: 11px;
+  padding: var(--space-12);
+  border-radius: var(--radius-16);
+  background: var(--surface-1);
+  box-shadow: var(--inset-line-1);
+}
+
+/* unread marker ring matches the row surface */
+.freshDot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface-1);
+}
+
+.line {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.quote {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-4);
+  margin-top: var(--space-4);
+}
+
+.time {
+  font-size: var(--font-size-10);
+  color: var(--text-6);
+  margin-top: 5px;
+}
+
+.thumb {
+  width: 38px;
+  height: 50px;
+  border-radius: var(--radius-8);
+}
+
+/* event-line emphasis */
+.strong {
+  color: var(--text-1);
+}
+
+.dim {
+  color: var(--text-4);
+}
+
+/* keyframes are duplicated per-module: CSS Modules hash animation names, so
+ * referencing the globals.css copies would not resolve */
+@keyframes cnSlide {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}

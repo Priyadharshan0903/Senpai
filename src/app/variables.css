@@ -1,0 +1,85 @@
+/* Design tokens — the only place raw values live.
+ * Naming: px-valued names (--space-16 = 16px, --font-size-13 = 13px) so usage
+ * reads the same as the old inline styles it replaced. */
+
+:root {
+  /* ── brand ─────────────────────────────────────────── */
+  --primary-base: #5b8cc9; /* accent (ACCENT in lib/theme.ts must match) */
+  --primary-shade-1: #1e3a52; /* deep accent surface */
+  --primary-shade-2: #22304a; /* deep accent surface, dimmer */
+  --primary-glow: rgba(91, 140, 201, 0.4);
+  --heart: #ff6f61;
+  --success: #57c99a;
+
+  /* ── backgrounds & surfaces ────────────────────────── */
+  --bg-deep: #070809; /* page behind the app frame */
+  --bg-base: #0a0c0f; /* app background; also text-on-accent ink */
+  --surface-1: #12161c; /* cards, buttons */
+  --surface-2: #0c0f14; /* inset chips */
+  --surface-3: #181c22; /* raised controls */
+  --surface-4: #1a1e25; /* cover-art gradient fallback */
+
+  /* ── text ──────────────────────────────────────────── */
+  --text-1: #f3f5f8; /* bright headings */
+  --text-2: #c6ccd4; /* body */
+  --text-3: #9aa3af; /* soft */
+  --text-4: #8a929e; /* muted */
+  --text-5: #5a636f; /* dim / placeholders */
+  --text-6: #5f6773; /* faint / idle icons */
+
+  /* ── lines, scrims, shadows ────────────────────────── */
+  --line-1: rgba(255, 255, 255, 0.05);
+  --line-2: rgba(255, 255, 255, 0.08);
+  --line-3: rgba(255, 255, 255, 0.12);
+  --line-4: rgba(255, 255, 255, 0.14);
+  --scrim: rgba(8, 10, 13, 0.62);
+  --scrim-soft: rgba(8, 10, 13, 0.55);
+  --shadow-card: 0 8px 26px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 10px 30px var(--primary-glow);
+  --inset-line-1: inset 0 0 0 1.5px var(--line-1);
+  --inset-line-2: inset 0 0 0 1.5px rgba(255, 255, 255, 0.09);
+
+  /* ── spacing ───────────────────────────────────────── */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-18: 18px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-40: 40px;
+
+  /* ── type scale ────────────────────────────────────── */
+  --font-size-9: 9px;
+  --font-size-10: 10px;
+  --font-size-11: 11px;
+  --font-size-12: 12px;
+  --font-size-13: 13px;
+  --font-size-14: 14px;
+  --font-size-15: 15px;
+  --font-size-16: 16px;
+  --font-size-17: 17px;
+  --font-size-18: 18px;
+  --font-size-20: 20px;
+  --font-size-22: 22px;
+  --font-size-23: 23px;
+  --font-size-27: 27px;
+  --font-size-28: 28px;
+
+  /* ── radii ─────────────────────────────────────────── */
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-13: 13px;
+  --radius-14: 14px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-26: 26px;
+  --radius-full: 999px;
+}

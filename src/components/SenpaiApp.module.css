@@ -1,0 +1,100 @@
+.shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+
+.splash {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  background: radial-gradient(120% 70% at 50% 0%, #16202b 0%, var(--bg-base) 55%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 30px;
+  text-align: center;
+}
+
+.splashHint {
+  font-size: var(--font-size-11);
+  color: var(--text-4);
+  letter-spacing: 1.5px;
+}
+
+.splashTitle {
+  font-weight: 800;
+  font-size: var(--font-size-20);
+  color: var(--text-1);
+}
+
+.splashBody {
+  font-size: var(--font-size-13);
+  color: var(--text-4);
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.retryBtn {
+  padding: var(--space-12) 26px;
+  border-radius: var(--radius-13);
+  font-weight: 800;
+  font-size: var(--font-size-14);
+  background: var(--primary-base);
+  color: var(--bg-base);
+}
+
+/* screen area between the safe-area top and the bottom nav */
+.content {
+  position: absolute;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  bottom: calc(50px + max(calc(env(safe-area-inset-bottom, 0px) - 12px), 8px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Feed owns its own scroll (pinned header) */
+.contentPinned {
+  overflow-y: hidden;
+}
+
+.toast {
+  position: absolute;
+  bottom: calc(64px + max(calc(env(safe-area-inset-bottom, 0px) - 12px), 8px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  padding: var(--space-12) 22px;
+  border-radius: var(--radius-26);
+  background: var(--primary-base);
+  color: var(--bg-base);
+  font-weight: 800;
+  font-size: 13.5px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-pop);
+  animation: cnPop 0.25s ease;
+}
+
+/* keyframes are duplicated per-module: CSS Modules hash animation names, so
+ * referencing the globals.css copies would not resolve */
+@keyframes cnPop {
+  0% {
+    transform: translateX(-50%) scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-50%) scale(1.03);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}

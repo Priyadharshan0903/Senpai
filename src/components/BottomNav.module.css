@@ -1,0 +1,27 @@
+.nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 65;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: start;
+  padding: var(--space-8) var(--space-8)
+    max(calc(env(safe-area-inset-bottom, 0px) - 12px), var(--space-8));
+  background: linear-gradient(0deg, var(--bg-base) 74%, transparent);
+  border-top: 1px solid var(--line-1);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  cursor: pointer;
+}
+
+.label {
+  font-size: 9.5px;
+  font-weight: 700;
+}

@@ -6,6 +6,8 @@ import { resolvePerson } from "@/lib/derive";
 import { PLATFORM_LIST } from "@/lib/theme";
 import { setWatchlistStatus, removeFromWatchlist } from "@/lib/api";
 import { PlusIcon } from "@/components/bits";
+import { RenderWhen } from "@/components/RenderWhen";
+import styles from "./Watchlist.module.css";
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -138,20 +140,22 @@ export function Watchlist() {
   const ddBtn = (label: string, active: boolean, onClick: () => void) => (
     <button
       onClick={onClick}
-      style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, padding: "10px 13px", borderRadius: 11, border: `1px solid ${active ? acc : "rgba(255,255,255,.1)"}`, background: "#12161c", cursor: "pointer", fontWeight: 600, fontSize: 12.5, color: "#e7eaef" }}
+      className={`${styles.ddBtn} w-full flex items-center justify-between gap-6 pointer`}
+      style={{ border: `1px solid ${active ? acc : "rgba(255,255,255,.1)"}` }}
     >
-      <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
-      <span style={{ color: "#8a929e", fontSize: 10 }}>▾</span>
+      <span className={styles.ellipsis}>{label}</span>
+      <span className={styles.ddCaret}>▾</span>
     </button>
   );
 
   const ddMenu = (items: string[], sel: string, pick: (v: string) => void) => (
-    <div style={{ position: "absolute", top: 47, left: 0, right: 0, background: "#1a1e25", borderRadius: 12, boxShadow: "0 14px 34px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08)", padding: 6, maxHeight: 236, overflowY: "auto", zIndex: 30 }}>
+    <div className={styles.ddMenu}>
       {items.map((v) => (
         <button
           key={v}
           onClick={() => pick(v)}
-          style={{ width: "100%", textAlign: "left", padding: "9px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: sel === v ? acc : "transparent", color: sel === v ? "#0a0c0f" : "#c6ccd4", fontWeight: 600, fontSize: 13 }}
+          className={`${styles.ddItem} pointer`}
+          style={{ background: sel === v ? acc : "transparent", color: sel === v ? "var(--bg-base)" : "var(--text-2)" }}
         >
           {v}
         </button>
@@ -160,40 +164,41 @@ export function Watchlist() {
   );
 
   return (
-    <div style={{ padding: "8px 0 24px" }}>
+    <div className={styles.screen}>
       {/* header */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "0 18px", marginBottom: 14 }}>
+      <div className={`${styles.header} flex justify-between`}>
         <div>
-          <div className="mono" style={{ fontSize: 10, color: acc, letterSpacing: "1.5px" }}>{subLabel}</div>
-          <div style={{ fontWeight: 800, fontSize: 27, letterSpacing: "-.8px", color: "#f3f5f8", marginTop: 2 }}>Watchlist</div>
+          <div className="eyebrow" style={{ color: acc }}>{subLabel}</div>
+          <div className={`${styles.title} screen-title`}>Watchlist</div>
         </div>
-        <button onClick={() => setScreen("add")} style={{ width: 38, height: 38, borderRadius: 12, border: "none", cursor: "pointer", background: acc, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <button onClick={() => setScreen("add")} className={`${styles.addBtn} flex-center pointer`} style={{ background: acc }}>
           <PlusIcon stroke="#0a0c0f" size={19} />
         </button>
       </div>
 
       {/* user chips */}
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 18px 14px" }}>
+      <div className={`${styles.chipsRow} flex gap-12 scroll-x`}>
         {data.profiles.map((p) => {
           const sel = effUsers.includes(p.id);
           return (
-            <div key={p.id} onClick={() => toggleUser(p.id)} style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer", opacity: sel ? 1 : 0.4 }}>
-              <div style={{ width: 46, height: 46, borderRadius: "50%", overflow: "hidden", background: p.color, boxShadow: `0 0 0 2.5px ${sel ? acc : "transparent"}` }}>
-                <img src={p.avatar} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+            <div key={p.id} onClick={() => toggleUser(p.id)} className="flex-none flex-col items-center gap-6 pointer" style={{ opacity: sel ? 1 : 0.4 }}>
+              <div className={`${styles.chipAvatar} avatar-round`} style={{ background: p.color, boxShadow: `0 0 0 2.5px ${sel ? acc : "transparent"}` }}>
+                <img src={p.avatar} alt="" className="img-cover" />
               </div>
-              <span style={{ fontSize: 10.5, fontWeight: 600, color: sel ? "#f3f5f8" : "#8a929e" }}>{p.name}</span>
+              <span className={styles.chipName} style={{ color: sel ? "var(--text-1)" : "var(--text-4)" }}>{p.name}</span>
             </div>
           );
         })}
       </div>
 
       {/* status segmented */}
-      <div style={{ margin: "0 18px 12px", display: "flex", background: "#12161c", borderRadius: 13, padding: 3, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)" }}>
+      <div className={`${styles.segmented} flex`}>
         {STATUSES.map((s) => (
           <button
             key={s}
             onClick={() => setStatus(s)}
-            style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11.5, background: status === s ? acc : "transparent", color: status === s ? "#0a0c0f" : "#9aa3af", whiteSpace: "nowrap" }}
+            className={`${styles.segBtn} flex-1 pointer`}
+            style={{ background: status === s ? acc : "transparent", color: status === s ? "var(--bg-base)" : "var(--text-3)" }}
           >
             {s === "Plan to watch" ? "Plan" : s === "Favorites" ? "♥ Favs" : s}
           </button>
@@ -201,19 +206,23 @@ export function Watchlist() {
       </div>
 
       {/* genre + where dropdowns */}
-      <div style={{ position: "relative", zIndex: 15, display: "flex", gap: 10, padding: "0 18px 16px" }}>
-        <div style={{ flex: 1, position: "relative" }}>
+      <div className={`${styles.filters} relative flex gap-10`}>
+        <div className="flex-1 relative">
           {ddBtn("Genre · " + genre, genre !== "All", () => setOpen(open === "genre" ? null : "genre"))}
-          {open === "genre" && ddMenu(WL_GENRES, genre, (v) => { setGenre(v); setOpen(null); })}
+          <RenderWhen.If isTrue={open === "genre"}>
+            {ddMenu(WL_GENRES, genre, (v) => { setGenre(v); setOpen(null); })}
+          </RenderWhen.If>
         </div>
-        <div style={{ flex: 1, position: "relative" }}>
+        <div className="flex-1 relative">
           {ddBtn("Where · " + platform, platform !== "All", () => setOpen(open === "platform" ? null : "platform"))}
-          {open === "platform" && ddMenu(["All", ...PLATFORM_LIST], platform, (v) => { setPlatform(v); setOpen(null); })}
+          <RenderWhen.If isTrue={open === "platform"}>
+            {ddMenu(["All", ...PLATFORM_LIST], platform, (v) => { setPlatform(v); setOpen(null); })}
+          </RenderWhen.If>
         </div>
       </div>
 
       {/* rows */}
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      <div className="flex-col">
         {filtered.map((row) => {
           const per = resolvePerson(data.profiles, row.user);
           const sc = stColor(row.status);
@@ -222,39 +231,45 @@ export function Watchlist() {
             else cycleStatus(row);
           };
           return (
-            <div key={row.key} onClick={openRow} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 18px", borderBottom: "1px solid rgba(255,255,255,.05)", cursor: "pointer" }}>
-              <div style={{ width: 42, height: 56, borderRadius: 7, flex: "none", background: `linear-gradient(155deg,${row.c1},${row.c2})`, position: "relative", overflow: "hidden" }}>
-                {row.cover && <img src={row.cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+            <div key={row.key} onClick={openRow} className={`${styles.row} flex items-center pointer`}>
+              <div className={`${styles.rowCover} flex-none relative overflow-hidden`} style={{ background: `linear-gradient(155deg,${row.c1},${row.c2})` }}>
+                <RenderWhen.If isTrue={!!row.cover}>
+                  <img src={row.cover} alt="" className="absolute-fill img-cover" />
+                </RenderWhen.If>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14.5, color: "#f3f5f8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.title}</div>
-                <div style={{ fontSize: 11.5, color: "#8a929e", marginTop: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.sub}</div>
+              <div className="flex-1 minw-0">
+                <div className={`${styles.rowTitle} ${styles.ellipsis}`}>{row.title}</div>
+                <div className={`${styles.rowSub} ${styles.ellipsis}`}>{row.sub}</div>
               </div>
-              {showUser && (
-                <span style={{ width: 24, height: 24, borderRadius: "50%", overflow: "hidden", flex: "none", background: per.color, display: "block" }}>
-                  <img src={per.avatar} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+              <RenderWhen.If isTrue={showUser}>
+                <span className={`${styles.rowUser} avatar-round flex-none`} style={{ background: per.color }}>
+                  <img src={per.avatar} alt="" className="img-cover" />
                 </span>
-              )}
-              <div style={{ flex: "none", display: "flex", alignItems: "center", gap: 8 }}>
-                {row.favd && <span style={{ color: "#ff6f61", fontSize: 13 }}>♥</span>}
-                {row.isWatched && <span style={{ color: acc, fontWeight: 800, fontSize: 13.5 }}>★ {row.rating}</span>}
-                <span style={{ padding: "4px 10px", borderRadius: 14, fontSize: 10.5, fontWeight: 700, background: sc + "22", color: sc }}>{row.status === "Plan to watch" ? "Plan" : row.status}</span>
-                {!row.isWatched && row.user === me && (
+              </RenderWhen.If>
+              <div className="flex-none flex items-center gap-8">
+                <RenderWhen.If isTrue={row.favd}>
+                  <span className={styles.heart}>♥</span>
+                </RenderWhen.If>
+                <RenderWhen.If isTrue={row.isWatched}>
+                  <span className={styles.rating} style={{ color: acc }}>★ {row.rating}</span>
+                </RenderWhen.If>
+                <span className={styles.statusPill} style={{ background: sc + "22", color: sc }}>{row.status === "Plan to watch" ? "Plan" : row.status}</span>
+                <RenderWhen.If isTrue={!row.isWatched && row.user === me}>
                   <button
                     onClick={(ev) => { ev.stopPropagation(); removeItem(row); }}
                     title="Remove from watchlist"
-                    style={{ width: 24, height: 24, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(255,255,255,.06)", color: "#8a929e", fontSize: 11, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}
+                    className={`${styles.removeBtn} flex-center pointer`}
                   >
                     ✕
                   </button>
-                )}
+                </RenderWhen.If>
               </div>
             </div>
           );
         })}
-        {filtered.length === 0 && (
-          <div style={{ textAlign: "center", color: "#5a636f", fontSize: 13, padding: "40px 20px" }}>Nothing matches these filters.</div>
-        )}
+        <RenderWhen.If isTrue={filtered.length === 0}>
+          <div className={`${styles.empty} text-center`}>Nothing matches these filters.</div>
+        </RenderWhen.If>
       </div>
     </div>
   );

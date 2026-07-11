@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { SenpaiProvider } from "@/store";
 import { SenpaiApp } from "@/components/SenpaiApp";
+import styles from "./page.module.css";
 
 /**
  * Shell: on phone-sized viewports (or when installed as a PWA) the app fills
@@ -32,12 +33,12 @@ export default function Page() {
   }, []);
 
   if (framed === null) {
-    return <div style={{ minHeight: "100vh", background: "#070809" }} />;
+    return <div className={styles.boot} />;
   }
 
   if (!framed) {
     return (
-      <div style={{ position: "fixed", inset: 0, background: "#0a0c0f" }}>
+      <div className={styles.fullscreen}>
         <SenpaiProvider>
           <SenpaiApp />
         </SenpaiProvider>
@@ -46,54 +47,11 @@ export default function Page() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "28px 12px",
-        background:
-          "radial-gradient(130% 90% at 50% -10%, #14171d 0%, #0a0c0f 50%, #070809 100%)",
-        backgroundColor: "#070809",
-      }}
-    >
-      <div
-        style={{
-          position: "relative",
-          width: 390,
-          height: 844,
-          borderRadius: 48,
-          padding: 11,
-          background: "linear-gradient(160deg,#1c2128,#0a0c0f 60%)",
-          boxShadow: "0 34px 90px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,255,255,.06)",
-        }}
-      >
+    <div className={`${styles.stage} flex-center`}>
+      <div className={`${styles.frame} relative`}>
         {/* notch */}
-        <div
-          style={{
-            position: "absolute",
-            top: 22,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 112,
-            height: 26,
-            background: "#070809",
-            borderRadius: "0 0 16px 16px",
-            zIndex: 60,
-          }}
-        />
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            height: "100%",
-            borderRadius: 38,
-            overflow: "hidden",
-            background: "#0a0c0f",
-            boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.06)",
-          }}
-        >
+        <div className={styles.notch} />
+        <div className={`${styles.screen} relative w-full h-full overflow-hidden`}>
           <SenpaiProvider>
             <SenpaiApp />
           </SenpaiProvider>

@@ -4,12 +4,14 @@ import React, { useEffect, useState } from "react";
 import { useSenpai } from "@/store";
 import { CoverArt } from "@/components/CoverArt";
 import { StarPicker } from "@/components/bits";
+import { RenderWhen } from "@/components/RenderWhen";
 import { searchAnime, postLog, addToWatchlist, SearchResult, SearchCandidate } from "@/lib/api";
 import { norm, MOOD_LIST, MOOD_META, PLATFORM_LIST, PLATFORM_META, GENRE_LIST, artPairForTitle } from "@/lib/theme";
 import { avg } from "@/lib/derive";
+import styles from "./Add.module.css";
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <div className="mono" style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px", marginBottom: 11 }}>
+  <div className={`mono ${styles.label}`}>
     {children}
   </div>
 );
@@ -215,126 +217,128 @@ export function Add() {
   });
 
   return (
-    <div style={{ padding: "8px 18px 30px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <button onClick={() => setScreen("feed")} style={{ width: 38, height: 38, borderRadius: 12, border: "1.5px solid rgba(255,255,255,.12)", background: "transparent", cursor: "pointer", color: "#f3f5f8", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+    <div className={styles.screen}>
+      <div className={`${styles.header} flex items-center gap-12`}>
+        <button onClick={() => setScreen("feed")} className={`${styles.backBtn} flex-center pointer`}>‹</button>
         <div>
-          <div className="mono" style={{ fontSize: 10, color: acc, letterSpacing: "1.5px" }}>NEW LOG</div>
-          <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: "-.5px", color: "#f3f5f8" }}>Log a show</div>
+          <div className={`mono ${styles.headerEyebrow}`} style={{ color: acc }}>NEW LOG</div>
+          <div className={styles.title}>Log a show</div>
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 6px 6px 16px", borderRadius: 14, background: "#12161c", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.09)", marginBottom: 16 }}>
+      <div className={`${styles.searchBar} flex items-center gap-10`}>
         <input
           value={title}
           onChange={(e) => { setTitle(e.target.value); setPhase("idle"); setFound(null); setDupId(null); }}
           onKeyDown={(e) => e.key === "Enter" && runSearch()}
           placeholder="type the anime name..."
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 15, fontWeight: 600 }}
+          className={`${styles.searchInput} flex-1`}
         />
-        <button onClick={() => runSearch()} style={{ padding: "10px 16px", borderRadius: 11, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13, background: acc, color: "#0a0c0f" }}>Search</button>
+        <button onClick={() => runSearch()} className={`${styles.searchBtn} pointer`} style={{ background: acc }}>Search</button>
       </div>
 
       {/* ===== SEARCHING ===== */}
-      {phase === "searching" && (
-        <div style={{ display: "flex", gap: 14, alignItems: "center", padding: 14, borderRadius: 16, background: "#12161c", marginBottom: 18 }}>
-          <div style={{ width: 52, height: 70, borderRadius: 8, flex: "none", background: "linear-gradient(100deg,#1a1e25 30%,#252b34 50%,#1a1e25 70%)", backgroundSize: "220px 100%", animation: "cnShim 1s linear infinite" }} />
-          <div style={{ flex: 1 }}>
-            <div className="mono" style={{ fontSize: 11, color: acc, letterSpacing: "1px" }}>SEARCHING THE WEB...</div>
-            <div style={{ fontSize: 13, color: "#8a929e", marginTop: 6 }}>finding matches for &quot;{title}&quot;</div>
+      <RenderWhen.If isTrue={phase === "searching"}>
+        <div className={`${styles.searchingCard} flex items-center`}>
+          <div className={`${styles.shimmer} flex-none`} />
+          <div className="flex-1">
+            <div className={`mono ${styles.searchingLabel}`} style={{ color: acc }}>SEARCHING THE WEB...</div>
+            <div className={styles.searchingSub}>finding matches for &quot;{title}&quot;</div>
           </div>
         </div>
-      )}
+      </RenderWhen.If>
 
       {/* ===== RESULTS LIST ===== */}
-      {phase === "results" && (
-        <div style={{ animation: "cnUp .3s ease both" }}>
+      <RenderWhen.If isTrue={phase === "results"}>
+        <div className={styles.animUp}>
           <Label>
             {candidates.length > 0 ? `RESULTS FOR “${searched.toUpperCase()}” · TAP ONE` : "NO MATCHES FOUND"}
           </Label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="flex-col gap-10">
             {candidates.map((c) => {
               const hint = hintFor(c);
               return (
                 <div
                   key={c.anilistId ?? c.title}
                   onClick={() => pickCandidate(c)}
-                  style={{ display: "flex", gap: 12, alignItems: "center", padding: 10, borderRadius: 14, background: "#12161c", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)", cursor: "pointer" }}
+                  className={`${styles.resultRow} flex items-center gap-12 pointer`}
                 >
-                  <div style={{ width: 52, height: 70, borderRadius: 8, flex: "none", background: `linear-gradient(155deg,${c.c1},${c.c2})`, position: "relative", overflow: "hidden" }}>
+                  <div className={`${styles.thumb} flex-none relative overflow-hidden`} style={{ background: `linear-gradient(155deg,${c.c1},${c.c2})` }}>
                     <CoverArt src={c.cover} placeholder="no art" radius={8} />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14.5, color: "#f3f5f8", lineHeight: 1.2 }} className="clamp2">{c.title}</div>
-                    <div style={{ fontSize: 11.5, color: "#8a929e", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div className="flex-1 minw-0">
+                    <div className={`${styles.resultTitle} clamp2`}>{c.title}</div>
+                    <div className={styles.resultMeta}>
                       {[c.genres.slice(0, 3).join(" · "), [c.year, c.ep].filter(Boolean).join(" · ")].filter(Boolean).join("  ·  ") || "no metadata"}
                     </div>
-                    {hint && (
-                      <div style={{ fontSize: 11, fontWeight: 700, color: hint.color, marginTop: 5 }}>{hint.text}</div>
-                    )}
+                    <RenderWhen.If isTrue={!!hint}>
+                      <div className={styles.resultHint} style={{ color: hint?.color }}>{hint?.text}</div>
+                    </RenderWhen.If>
                   </div>
-                  <span style={{ flex: "none", color: "#5a636f", fontSize: 16 }}>›</span>
+                  <span className={`${styles.chevron} flex-none`}>›</span>
                 </div>
               );
             })}
 
             {/* nothing found anywhere — offer to log the typed title as-is */}
-            {candidates.length === 0 && (
+            <RenderWhen.If isTrue={candidates.length === 0}>
               <div
                 onClick={pickFallback}
-                style={{ display: "flex", gap: 12, alignItems: "center", padding: 10, borderRadius: 14, background: "#12161c", boxShadow: `inset 0 0 0 1.5px ${acc}44`, cursor: "pointer" }}
+                className={`${styles.resultRow} flex items-center gap-12 pointer`}
+                style={{ boxShadow: `inset 0 0 0 1.5px ${acc}44` }}
               >
-                <div style={{ width: 52, height: 70, borderRadius: 8, flex: "none", background: `linear-gradient(155deg,${artPairForTitle(searched)[0]},${artPairForTitle(searched)[1]})` }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14.5, color: "#f3f5f8" }}>{searched}</div>
-                  <div style={{ fontSize: 11.5, color: "#8a929e", marginTop: 4 }}>couldn&apos;t find it on the web — log it anyway with a gradient card</div>
+                <div className={`${styles.thumb} flex-none`} style={{ background: `linear-gradient(155deg,${artPairForTitle(searched)[0]},${artPairForTitle(searched)[1]})` }} />
+                <div className="flex-1 minw-0">
+                  <div className={styles.fallbackTitle}>{searched}</div>
+                  <div className={styles.fallbackSub}>couldn&apos;t find it on the web — log it anyway with a gradient card</div>
                 </div>
-                <span style={{ flex: "none", color: "#5a636f", fontSize: 16 }}>›</span>
+                <span className={`${styles.chevron} flex-none`}>›</span>
               </div>
-            )}
+            </RenderWhen.If>
           </div>
         </div>
-      )}
+      </RenderWhen.If>
 
       {/* ===== FORM ===== */}
-      {phase === "form" && found && (
-        <div style={{ animation: "cnUp .3s ease both" }}>
-          {isDup && (
-            <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "13px 15px", borderRadius: 14, background: "#1a1410", boxShadow: `inset 0 0 0 1.5px ${acc}55`, marginBottom: 18 }}>
-              <span style={{ color: acc, fontSize: 16 }}>↺</span>
-              <div style={{ fontSize: 13, color: "#e7eaef", lineHeight: 1.4 }}>
+      <RenderWhen.If isTrue={phase === "form" && !!found}>
+        <div className={styles.animUp}>
+          <RenderWhen.If isTrue={isDup}>
+            <div className={`${styles.dupBanner} flex items-center gap-10`} style={{ boxShadow: `inset 0 0 0 1.5px ${acc}55` }}>
+              <span className={styles.dupIcon} style={{ color: acc }}>↺</span>
+              <div className={styles.dupText}>
                 <b>{title}</b> is already on Senpai — your take will be <b style={{ color: acc }}>added to that card</b> and the rating re-averaged.
               </div>
             </div>
-          )}
+          </RenderWhen.If>
 
-          <div style={{ display: "flex", gap: 14, alignItems: "stretch", padding: 14, borderRadius: 16, background: "#12161c", boxShadow: `inset 0 0 0 1.5px ${acc}55`, marginBottom: 8 }}>
-            <div style={{ width: 70, height: 94, borderRadius: 9, flex: "none", background: `linear-gradient(155deg,${found.c1},${found.c2})`, boxShadow: "0 6px 16px rgba(0,0,0,.4)", position: "relative", overflow: "hidden" }}>
-              <CoverArt src={found.cover} placeholder="no art" radius={9} />
+          <div className={`${styles.heroCard} flex`} style={{ boxShadow: `inset 0 0 0 1.5px ${acc}55` }}>
+            <div className={`${styles.heroCover} flex-none relative overflow-hidden`} style={{ background: `linear-gradient(155deg,${found?.c1},${found?.c2})` }}>
+              <CoverArt src={found?.cover} placeholder="no art" radius={9} />
             </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <span style={{ color: acc, fontSize: 12 }}>✓</span>
-                <span className="mono" style={{ fontSize: 10, color: acc, letterSpacing: "1px" }}>{matchLabel}</span>
+            <div className="flex-1 flex-col justify-center">
+              <div className={`${styles.matchRow} flex items-center gap-6`}>
+                <span className={styles.matchCheck} style={{ color: acc }}>✓</span>
+                <span className={`mono ${styles.matchLabel}`} style={{ color: acc }}>{matchLabel}</span>
               </div>
-              <div style={{ fontWeight: 800, fontSize: 19, color: "#f3f5f8", lineHeight: 1.1 }}>{title}</div>
-              <div className="mono" style={{ fontSize: 11, color: "#8a929e", marginTop: 4 }}>{meta}</div>
+              <div className={styles.heroTitle}>{title}</div>
+              <div className={`mono ${styles.heroMeta}`}>{meta}</div>
             </div>
           </div>
           <button
             onClick={() => setPhase("results")}
-            style={{ background: "transparent", border: "none", cursor: "pointer", padding: "4px 2px", marginBottom: 14, color: "#8a929e", fontFamily: "var(--font-jakarta)", fontWeight: 700, fontSize: 12 }}
+            className={`${styles.backLink} pointer`}
           >
             ‹ not it? back to results
           </button>
 
           <Label>STATUS</Label>
-          <div style={{ display: "flex", background: "#12161c", borderRadius: 13, padding: 3, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)", marginBottom: 22 }}>
+          <div className={`${styles.segmented} flex`}>
             {(["Watched", "Watching", "Plan to watch"] as const).map((st) => (
               <button
                 key={st}
                 onClick={() => setAddStatus(st)}
-                style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11.5, background: addStatus === st ? acc : "transparent", color: addStatus === st ? "#0a0c0f" : "#9aa3af", whiteSpace: "nowrap" }}
+                className={`${styles.segBtn} flex-1 pointer`}
+                style={{ background: addStatus === st ? acc : "transparent", color: addStatus === st ? "#0a0c0f" : "#9aa3af" }}
               >
                 {st === "Plan to watch" ? "Plan" : st}
               </button>
@@ -342,46 +346,46 @@ export function Add() {
           </div>
 
           <Label>WHERE DID YOU WATCH IT?</Label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+          <div className={`${styles.chipRow} flex gap-8`}>
             {PLATFORM_LIST.map((p) => {
               const c = chip(platform === p, PLATFORM_META[p]);
               return (
-                <button key={p} onClick={() => setPlatform(p)} style={{ padding: "9px 14px", borderRadius: 11, border: `1.5px solid ${c.borderColor}`, background: c.background, color: c.color, cursor: "pointer", fontWeight: 700, fontSize: 12.5 }}>{p}</button>
+                <button key={p} onClick={() => setPlatform(p)} className={`${styles.platformChip} pointer`} style={c}>{p}</button>
               );
             })}
           </div>
 
-          {watched && (
+          <RenderWhen.If isTrue={watched}>
           <>
           <Label>YOUR RATING</Label>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
+          <div className={`${styles.ratingRow} flex items-center`}>
             <StarPicker value={rating} onPick={setRating} acc={acc} size={32} />
-            <span className="mono" style={{ fontWeight: 700, fontSize: 20, color: acc }}>{rating > 0 ? rating * 2 + "/10" : "–/10"}</span>
+            <span className={`mono ${styles.ratingValue}`} style={{ color: acc }}>{rating > 0 ? rating * 2 + "/10" : "–/10"}</span>
           </div>
 
           <Label>HAVE YOU REWATCHED IT?</Label>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }}>
-            <button onClick={() => setRewatch(Math.max(0, rewatch - 1))} style={stepBtn}>−</button>
-            <span style={{ flex: 1, textAlign: "center", fontWeight: 700, fontSize: 14, color: "#c6ccd4" }}>{rewatch === 0 ? "First watch" : rewatch + "× rewatched"}</span>
-            <button onClick={() => setRewatch(rewatch + 1)} style={stepBtn}>+</button>
+          <div className={`${styles.rewatchRow} flex items-center gap-16`}>
+            <button onClick={() => setRewatch(Math.max(0, rewatch - 1))} className={`${styles.stepBtn} flex-center pointer`}>−</button>
+            <span className={`${styles.rewatchLabel} flex-1 text-center`}>{rewatch === 0 ? "First watch" : rewatch + "× rewatched"}</span>
+            <button onClick={() => setRewatch(rewatch + 1)} className={`${styles.stepBtn} flex-center pointer`}>+</button>
           </div>
 
           <Label>HOW DID IT MAKE YOU FEEL?</Label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+          <div className={`${styles.chipRow} flex gap-8`}>
             {MOOD_LIST.map((m) => {
               const c = chip(mood === m, MOOD_META[m]);
               return (
-                <button key={m} onClick={() => setMood(m)} style={{ padding: "9px 15px", borderRadius: 20, border: `1.5px solid ${c.borderColor}`, background: c.background, color: c.color, cursor: "pointer", fontWeight: 700, fontSize: 12.5 }}>{m}</button>
+                <button key={m} onClick={() => setMood(m)} className={`${styles.moodChip} pointer`} style={c}>{m}</button>
               );
             })}
           </div>
           </>
-          )}
+          </RenderWhen.If>
 
-          {!isDup && (
+          <RenderWhen.If isTrue={!isDup}>
             <>
               <Label>GENRE</Label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+              <div className={`${styles.chipRow} flex gap-8`}>
                 {GENRE_LIST.map((g) => {
                   const sel = genres.includes(g);
                   const c = chip(sel, acc);
@@ -389,7 +393,8 @@ export function Add() {
                     <button
                       key={g}
                       onClick={() => setGenres(sel ? genres.filter((x) => x !== g) : [...genres, g])}
-                      style={{ padding: "8px 13px", borderRadius: 11, border: `1.5px solid ${c.borderColor}`, background: c.background, color: c.color, cursor: "pointer", fontWeight: 600, fontSize: 12 }}
+                      className={`${styles.genreChip} pointer`}
+                      style={c}
                     >
                       {g}
                     </button>
@@ -397,40 +402,41 @@ export function Add() {
                 })}
               </div>
             </>
-          )}
+          </RenderWhen.If>
 
-          {watched && (
+          <RenderWhen.If isTrue={watched}>
           <>
-          <Label>YOUR THOUGHTS <span style={{ color: "#5a636f" }}>· optional</span></Label>
+          <Label>YOUR THOUGHTS <span className={styles.optional}>· optional</span></Label>
           <textarea
             value={reflect}
             onChange={(e) => setReflect(e.target.value)}
             placeholder="optional — skip this if you just want to log that you watched it"
-            style={{ width: "100%", height: 88, padding: 14, borderRadius: 14, background: "#12161c", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.09)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 14, lineHeight: 1.5, marginBottom: 22 }}
+            className={`${styles.field} ${styles.reflectField} w-full`}
           />
 
-          <div className="mono" style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px", marginBottom: 11 }}>
-            FAVORITE MOMENT <span style={{ color: "#5a636f" }}>· optional</span>
+          <div className={`mono ${styles.label}`}>
+            FAVORITE MOMENT <span className={styles.optional}>· optional</span>
           </div>
           <input
             value={momentTitle}
             onChange={(e) => setMomentTitle(e.target.value)}
             placeholder="e.g. Ep 10 — the rooftop"
-            style={{ width: "100%", padding: "13px 14px", borderRadius: 12, background: "#12161c", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.09)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 14, fontWeight: 600, marginBottom: 10 }}
+            className={`${styles.field} ${styles.momentTitleField} w-full`}
           />
           <textarea
             value={momentWhy}
             onChange={(e) => setMomentWhy(e.target.value)}
             placeholder="why did it hit so hard?"
-            style={{ width: "100%", height: 66, padding: "13px 14px", borderRadius: 12, background: "#12161c", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.09)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 14, lineHeight: 1.5, marginBottom: 24 }}
+            className={`${styles.field} ${styles.momentWhyField} w-full`}
           />
           </>
-          )}
+          </RenderWhen.If>
 
           <button
             onClick={submit}
             disabled={busy}
-            style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", cursor: "pointer", fontWeight: 800, fontSize: 16, background: ready ? acc : "#181c22", color: ready ? "#0a0c0f" : "#5a636f", opacity: busy ? 0.7 : 1 }}
+            className={`${styles.submitBtn} w-full pointer`}
+            style={{ background: ready ? acc : "#181c22", color: ready ? "#0a0c0f" : "#5a636f", opacity: busy ? 0.7 : 1 }}
           >
             {!watched
               ? ready
@@ -443,28 +449,14 @@ export function Add() {
               : "Fill rating, mood & platform"}
           </button>
         </div>
-      )}
+      </RenderWhen.If>
 
       {/* ===== IDLE ===== */}
-      {phase === "idle" && (
-        <div style={{ textAlign: "center", color: "#4a525d", fontSize: 13, padding: "36px 30px", lineHeight: 1.6 }}>
-          Type a show and hit <b style={{ color: "#8a929e" }}>Enter</b> — Senpai searches the web (typos welcome) and shows you the matches to pick from.
+      <RenderWhen.If isTrue={phase === "idle"}>
+        <div className={`${styles.idleHint} text-center`}>
+          Type a show and hit <b className={styles.idleKey}>Enter</b> — Senpai searches the web (typos welcome) and shows you the matches to pick from.
         </div>
-      )}
+      </RenderWhen.If>
     </div>
   );
 }
-
-const stepBtn: React.CSSProperties = {
-  width: 40,
-  height: 40,
-  borderRadius: 11,
-  border: "1.5px solid rgba(255,255,255,.12)",
-  background: "transparent",
-  color: "#f3f5f8",
-  fontSize: 22,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};

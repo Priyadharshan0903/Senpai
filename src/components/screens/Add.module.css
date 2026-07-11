@@ -1,0 +1,394 @@
+.screen {
+  padding: var(--space-8) var(--space-18) 30px;
+}
+
+/* section label (compose with .mono) */
+.label {
+  font-size: var(--font-size-10);
+  color: var(--text-4);
+  letter-spacing: 1.5px;
+  margin-bottom: 11px;
+}
+
+/* ── header ──────────────────────────────────────────── */
+.header {
+  margin-bottom: var(--space-18);
+}
+
+.backBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-12);
+  border: 1.5px solid var(--line-3);
+  background: transparent;
+  color: var(--text-1);
+  font-size: var(--font-size-20);
+}
+
+/* color is the dynamic accent, set inline */
+.headerEyebrow {
+  font-size: var(--font-size-10);
+  letter-spacing: 1.5px;
+}
+
+.title {
+  font-weight: 800;
+  font-size: var(--font-size-22);
+  letter-spacing: -0.5px;
+  color: var(--text-1);
+}
+
+/* ── search bar ──────────────────────────────────────── */
+.searchBar {
+  padding: var(--space-6) var(--space-6) var(--space-6) var(--space-16);
+  border-radius: var(--radius-14);
+  background: var(--surface-1);
+  box-shadow: var(--inset-line-2);
+  margin-bottom: var(--space-16);
+}
+
+.searchInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-1);
+  font-family: var(--font-jakarta);
+  font-size: var(--font-size-15);
+  font-weight: 600;
+}
+
+/* background is the dynamic accent, set inline */
+.searchBtn {
+  padding: var(--space-10) var(--space-16);
+  border-radius: 11px;
+  border: none;
+  font-weight: 700;
+  font-size: var(--font-size-13);
+  color: var(--bg-base);
+}
+
+/* ── searching state ─────────────────────────────────── */
+.searchingCard {
+  gap: var(--space-14);
+  padding: var(--space-14);
+  border-radius: var(--radius-16);
+  background: var(--surface-1);
+  margin-bottom: var(--space-18);
+}
+
+.shimmer {
+  width: 52px;
+  height: 70px;
+  border-radius: var(--radius-8);
+  background: linear-gradient(100deg, var(--surface-4) 30%, #252b34 50%, var(--surface-4) 70%);
+  background-size: 220px 100%;
+  animation: cnShim 1s linear infinite;
+}
+
+/* color is the dynamic accent, set inline */
+.searchingLabel {
+  font-size: var(--font-size-11);
+  letter-spacing: 1px;
+}
+
+.searchingSub {
+  font-size: var(--font-size-13);
+  color: var(--text-4);
+  margin-top: var(--space-6);
+}
+
+/* ── results list ────────────────────────────────────── */
+.animUp {
+  animation: cnUp 0.3s ease both;
+}
+
+.resultRow {
+  padding: var(--space-10);
+  border-radius: var(--radius-14);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* gradient background is data-driven, set inline */
+.thumb {
+  width: 52px;
+  height: 70px;
+  border-radius: var(--radius-8);
+}
+
+.resultTitle {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--text-1);
+  line-height: 1.2;
+}
+
+.resultMeta {
+  font-size: 11.5px;
+  color: var(--text-4);
+  margin-top: var(--space-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* color is data-driven, set inline */
+.resultHint {
+  font-size: var(--font-size-11);
+  font-weight: 700;
+  margin-top: 5px;
+}
+
+.chevron {
+  color: var(--text-5);
+  font-size: var(--font-size-16);
+}
+
+.fallbackTitle {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--text-1);
+}
+
+.fallbackSub {
+  font-size: 11.5px;
+  color: var(--text-4);
+  margin-top: var(--space-4);
+}
+
+/* ── form: dup banner & hero card ────────────────────── */
+/* accent ring is dynamic, set inline */
+.dupBanner {
+  padding: 13px 15px;
+  border-radius: var(--radius-14);
+  background: #1a1410;
+  margin-bottom: var(--space-18);
+}
+
+/* color is the dynamic accent, set inline */
+.dupIcon {
+  font-size: var(--font-size-16);
+}
+
+.dupText {
+  font-size: var(--font-size-13);
+  color: #e7eaef;
+  line-height: 1.4;
+}
+
+/* accent ring is dynamic, set inline */
+.heroCard {
+  gap: var(--space-14);
+  align-items: stretch;
+  padding: var(--space-14);
+  border-radius: var(--radius-16);
+  background: var(--surface-1);
+  margin-bottom: var(--space-8);
+}
+
+/* gradient background is data-driven, set inline */
+.heroCover {
+  width: 70px;
+  height: 94px;
+  border-radius: 9px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.matchRow {
+  margin-bottom: var(--space-6);
+}
+
+/* color is the dynamic accent, set inline */
+.matchCheck {
+  font-size: var(--font-size-12);
+}
+
+/* color is the dynamic accent, set inline */
+.matchLabel {
+  font-size: var(--font-size-10);
+  letter-spacing: 1px;
+}
+
+.heroTitle {
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--text-1);
+  line-height: 1.1;
+}
+
+.heroMeta {
+  font-size: var(--font-size-11);
+  color: var(--text-4);
+  margin-top: var(--space-4);
+}
+
+.backLink {
+  background: transparent;
+  border: none;
+  padding: var(--space-4) var(--space-2);
+  margin-bottom: var(--space-14);
+  color: var(--text-4);
+  font-family: var(--font-jakarta);
+  font-weight: 700;
+  font-size: var(--font-size-12);
+}
+
+/* ── form controls ───────────────────────────────────── */
+.segmented {
+  background: var(--surface-1);
+  border-radius: var(--radius-13);
+  padding: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  margin-bottom: 22px;
+}
+
+/* selected background/color are state-driven, set inline */
+.segBtn {
+  padding: 9px var(--space-4);
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.chipRow {
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+/* border-color/background/color are state-driven, set inline */
+.platformChip {
+  padding: 9px var(--space-14);
+  border-radius: 11px;
+  border: 1.5px solid transparent;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.moodChip {
+  padding: 9px 15px;
+  border-radius: var(--radius-20);
+  border: 1.5px solid transparent;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.genreChip {
+  padding: var(--space-8) 13px;
+  border-radius: 11px;
+  border: 1.5px solid transparent;
+  font-weight: 600;
+  font-size: var(--font-size-12);
+}
+
+.ratingRow {
+  gap: var(--space-14);
+  margin-bottom: 22px;
+}
+
+/* color is the dynamic accent, set inline */
+.ratingValue {
+  font-weight: 700;
+  font-size: var(--font-size-20);
+}
+
+.rewatchRow {
+  margin-bottom: 22px;
+}
+
+.stepBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  border: 1.5px solid var(--line-3);
+  background: transparent;
+  color: var(--text-1);
+  font-size: var(--font-size-22);
+}
+
+.rewatchLabel {
+  font-weight: 700;
+  font-size: var(--font-size-14);
+  color: var(--text-2);
+}
+
+.optional {
+  color: var(--text-5);
+}
+
+/* ── free-text fields ────────────────────────────────── */
+.field {
+  background: var(--surface-1);
+  border: none;
+  outline: none;
+  box-shadow: var(--inset-line-2);
+  color: var(--text-1);
+  font-family: var(--font-jakarta);
+  font-size: var(--font-size-14);
+}
+
+.reflectField {
+  height: 88px;
+  padding: var(--space-14);
+  border-radius: var(--radius-14);
+  line-height: 1.5;
+  margin-bottom: 22px;
+}
+
+.momentTitleField {
+  padding: 13px var(--space-14);
+  border-radius: var(--radius-12);
+  font-weight: 600;
+  margin-bottom: var(--space-10);
+}
+
+.momentWhyField {
+  height: 66px;
+  padding: 13px var(--space-14);
+  border-radius: var(--radius-12);
+  line-height: 1.5;
+  margin-bottom: var(--space-24);
+}
+
+/* background/color/opacity are state-driven, set inline */
+.submitBtn {
+  padding: var(--space-16);
+  border-radius: 15px;
+  border: none;
+  font-weight: 800;
+  font-size: var(--font-size-16);
+}
+
+/* ── idle state ──────────────────────────────────────── */
+.idleHint {
+  color: #4a525d;
+  font-size: var(--font-size-13);
+  padding: 36px 30px;
+  line-height: 1.6;
+}
+
+.idleKey {
+  color: var(--text-4);
+}
+
+/* keyframes are duplicated per-module: CSS Modules hash animation names, so
+ * referencing the globals.css copies would not resolve */
+@keyframes cnShim {
+  0% {
+    background-position: -220px 0;
+  }
+  100% {
+    background-position: 220px 0;
+  }
+}
+@keyframes cnUp {
+  0% {
+    transform: translateY(9px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

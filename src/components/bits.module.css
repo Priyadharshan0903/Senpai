@@ -1,0 +1,44 @@
+/* ── LogoMark ────────────────────────────────────────── */
+.logoMark {
+  background: linear-gradient(160deg, #1c222b, var(--surface-2));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), inset 0 0 0 1px var(--line-2);
+}
+
+.bookLeft {
+  position: absolute;
+  background: linear-gradient(160deg, #3a8f86, var(--primary-shade-1));
+  transform: rotate(-17deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.bookRight {
+  position: absolute;
+  background: linear-gradient(160deg, var(--primary-base), var(--primary-shade-2));
+  transform: rotate(17deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.bookCenter {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.5);
+}
+
+.bookStar {
+  color: var(--bg-base);
+  font-weight: 700;
+}
+
+/* ── Stars / StarPicker ──────────────────────────────── */
+.starCell {
+  line-height: 1;
+  color: #2a3038; /* empty-star track */
+}
+
+.starFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+}

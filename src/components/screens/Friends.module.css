@@ -1,0 +1,102 @@
+.screen {
+  padding: var(--space-8) var(--space-18) var(--space-24);
+}
+
+.title {
+  margin: var(--space-2) 0 var(--space-18);
+}
+
+/* ── me card ────────────────────────────────────────── */
+.meCard {
+  padding: var(--space-14);
+  border-radius: var(--radius-16);
+  background: var(--surface-1);
+  margin-bottom: 22px;
+}
+
+.meAvatar {
+  width: 50px;
+  height: 50px;
+}
+
+.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meName {
+  font-weight: 800;
+  font-size: var(--font-size-16);
+  color: var(--text-1);
+}
+
+.youTag {
+  font-size: var(--font-size-11);
+  font-weight: 600;
+}
+
+.subLine {
+  font-size: 11.5px;
+  color: var(--text-4);
+  margin-top: var(--space-2);
+}
+
+.ghostBtn {
+  padding: 0 var(--space-12);
+  height: 34px;
+  border-radius: 11px;
+  border: 1.5px solid var(--line-4);
+  background: transparent;
+  color: var(--text-2);
+  font-weight: 700;
+  font-size: var(--font-size-12);
+}
+
+.accentBtn {
+  padding: 0 var(--space-12);
+  height: 34px;
+  border-radius: 11px;
+  border: none;
+  color: var(--bg-base);
+  font-weight: 700;
+  font-size: var(--font-size-12);
+}
+
+/* ── crew list ──────────────────────────────────────── */
+.sectionLabel {
+  font-size: var(--font-size-10);
+  color: var(--text-4);
+  letter-spacing: 1.5px;
+  margin-bottom: var(--space-12);
+}
+
+.friendRow {
+  gap: 13px;
+  padding: 11px;
+  border-radius: var(--radius-14);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+}
+
+.friendAvatar {
+  width: 44px;
+  height: 44px;
+}
+
+.friendName {
+  font-weight: 700;
+  font-size: var(--font-size-15);
+  color: var(--text-1);
+}
+
+.watchlistBtn {
+  padding: 0 13px;
+  height: 34px;
+  border-radius: 11px;
+  border: 1.5px solid var(--line-4);
+  background: transparent;
+  color: var(--text-2);
+  font-weight: 700;
+  font-size: var(--font-size-12);
+}

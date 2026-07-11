@@ -1,0 +1,89 @@
+.screen {
+  padding: var(--space-8) var(--space-18) var(--space-24);
+}
+
+/* ── header ─────────────────────────────────────────── */
+.header {
+  align-items: flex-end;
+  margin-bottom: var(--space-18);
+}
+
+.title {
+  margin-top: var(--space-2);
+}
+
+.addBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-12);
+  border: none;
+}
+
+/* ── ranked rows ────────────────────────────────────── */
+.row {
+  gap: 13px;
+  padding: var(--space-10);
+  border-radius: 15px;
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--line-1);
+}
+
+.rank {
+  width: 26px;
+  font-weight: 700;
+  font-size: var(--font-size-17);
+}
+
+.cover {
+  width: 46px;
+  height: 60px;
+  border-radius: var(--radius-8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowTitle {
+  font-weight: 700;
+  font-size: var(--font-size-15);
+  color: var(--text-1);
+}
+
+.meta {
+  margin-top: 5px;
+}
+
+.moodPill {
+  padding: 3px 9px;
+  border-radius: var(--radius-14);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.loggedCount {
+  font-size: 11.5px;
+  color: var(--text-4);
+}
+
+.score {
+  text-align: right;
+}
+
+.scoreValue {
+  font-weight: 800;
+  font-size: var(--font-size-17);
+}
+
+.star {
+  font-size: var(--font-size-13);
+}
+
+.avgLabel {
+  font-size: 9.5px;
+  color: var(--text-5);
+  margin-top: var(--space-2);
+}

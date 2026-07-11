@@ -1,0 +1,133 @@
+.screen {
+  z-index: 80;
+  background: radial-gradient(120% 70% at 50% 0%, #16202b 0%, var(--bg-base) 55%);
+  padding: 0 30px;
+  animation: cnFade 0.3s ease;
+}
+
+.backBtn {
+  margin-top: 60px;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-12);
+  border: 1.5px solid var(--line-3);
+  background: transparent;
+  color: var(--text-1);
+  font-size: var(--font-size-20);
+}
+
+/* ── logo tile ───────────────────────────────────────── */
+.logoTile {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #1c222b, var(--surface-2));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 1px var(--line-2);
+}
+
+.logoMark {
+  width: 40px;
+  height: 36px;
+}
+
+.cardLeft {
+  position: absolute;
+  left: 1px;
+  bottom: 2px;
+  width: 16px;
+  height: 23px;
+  border-radius: 4px;
+  background: linear-gradient(160deg, #3a8f86, var(--primary-shade-1));
+  transform: rotate(-17deg);
+}
+
+.cardRight {
+  position: absolute;
+  right: 1px;
+  bottom: 2px;
+  width: 16px;
+  height: 23px;
+  border-radius: 4px;
+  background: linear-gradient(160deg, var(--primary-base), var(--primary-shade-2));
+  transform: rotate(17deg);
+}
+
+/* background is the dynamic accent, set inline */
+.cardCenter {
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  transform: translateX(-50%);
+  width: 17px;
+  height: 25px;
+  border-radius: 4px;
+}
+
+.star {
+  color: var(--bg-base);
+  font-size: var(--font-size-11);
+  font-weight: 700;
+}
+
+/* ── copy ────────────────────────────────────────────── */
+.heading {
+  font-weight: 800;
+  font-size: var(--font-size-28);
+  color: var(--text-1);
+  margin-top: 22px;
+  letter-spacing: -0.5px;
+}
+
+.sub {
+  font-size: var(--font-size-14);
+  color: var(--text-3);
+  margin-top: var(--space-8);
+  line-height: 1.5;
+}
+
+/* ── name field ──────────────────────────────────────── */
+.nameRow {
+  margin-top: 30px;
+  padding: var(--space-6) var(--space-6) var(--space-6) var(--space-8);
+  border-radius: var(--radius-16);
+  background: var(--surface-1);
+  box-shadow: var(--inset-line-2);
+}
+
+/* background is the dynamic accent, set inline */
+.avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.nameInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-1);
+  font-family: var(--font-jakarta);
+  font-size: var(--font-size-17);
+  font-weight: 600;
+}
+
+/* background/opacity are state-driven, set inline */
+.createBtn {
+  margin-bottom: 44px;
+  padding: 17px;
+  border-radius: var(--radius-16);
+  border: none;
+  font-weight: 800;
+  font-size: var(--font-size-16);
+  color: var(--bg-base);
+}
+
+/* keyframes are duplicated per-module: CSS Modules hash animation names, so
+ * referencing the globals.css copies would not resolve */
+@keyframes cnFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

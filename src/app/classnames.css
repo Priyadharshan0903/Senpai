@@ -1,0 +1,148 @@
+/* Shared utility classes — the styles that repeat across screens.
+ * One-off looks belong in the component's *.module.css, raw values in
+ * variables.css. Compose with modules: className={`${styles.card} flex items-center`} */
+
+/* ── layout ──────────────────────────────────────────── */
+.flex {
+  display: flex;
+}
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.items-center {
+  align-items: center;
+}
+.items-start {
+  align-items: flex-start;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.justify-center {
+  justify-content: center;
+}
+.flex-1 {
+  flex: 1;
+}
+.flex-none {
+  flex: none;
+}
+.minw-0 {
+  min-width: 0;
+}
+.w-full {
+  width: 100%;
+}
+.h-full {
+  height: 100%;
+}
+.relative {
+  position: relative;
+}
+.absolute-fill {
+  position: absolute;
+  inset: 0;
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+
+/* gaps (px, matching --space-*) */
+.gap-4 {
+  gap: var(--space-4);
+}
+.gap-6 {
+  gap: var(--space-6);
+}
+.gap-8 {
+  gap: var(--space-8);
+}
+.gap-10 {
+  gap: var(--space-10);
+}
+.gap-12 {
+  gap: var(--space-12);
+}
+.gap-16 {
+  gap: var(--space-16);
+}
+
+/* ── scrolling ───────────────────────────────────────── */
+.scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── text ────────────────────────────────────────────── */
+.text-center {
+  text-align: center;
+}
+.mono {
+  font-family: var(--font-mono), monospace;
+}
+.clamp2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* section eyebrow: THE CREW · 1 PROFILES */
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--font-size-10);
+  letter-spacing: 1.5px;
+  color: var(--primary-base);
+}
+.screen-title {
+  font-weight: 800;
+  font-size: var(--font-size-27);
+  letter-spacing: -0.8px;
+  color: var(--text-1);
+}
+
+/* ── controls ────────────────────────────────────────── */
+.pointer {
+  cursor: pointer;
+}
+/* 40px square header action (bell, +, close) */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-13);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card {
+  border-radius: var(--radius-20);
+  overflow: hidden;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-card), var(--inset-line-1);
+}
+.avatar-round {
+  border-radius: 50%;
+  overflow: hidden;
+  display: block;
+}
+.img-cover {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}

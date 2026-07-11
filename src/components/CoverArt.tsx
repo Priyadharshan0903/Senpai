@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import styles from "./CoverArt.module.css";
 
 /* eslint-disable @next/next/no-img-element */
 /**
@@ -17,35 +18,10 @@ export function CoverArt({
   radius?: number;
 }) {
   if (src) {
-    return (
-      <img
-        src={src}
-        alt=""
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          borderRadius: radius,
-        }}
-      />
-    );
+    return <img src={src} alt="" className="absolute-fill img-cover" style={{ borderRadius: radius }} />;
   }
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "rgba(255,255,255,.5)",
-        fontSize: 12,
-        textAlign: "center",
-        padding: 8,
-      }}
-    >
+    <div className={`${styles.placeholder} absolute-fill flex-center text-center`}>
       {placeholder}
     </div>
   );

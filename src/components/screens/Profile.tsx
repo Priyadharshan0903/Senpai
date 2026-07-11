@@ -6,6 +6,8 @@ import { resolvePerson, MOOD_META, moodBgOf } from "@/lib/derive";
 import { rewatchLabel } from "@/lib/theme";
 import { updateProfile } from "@/lib/api";
 import { avatarUrl } from "@/lib/avatar";
+import { RenderWhen } from "@/components/RenderWhen";
+import styles from "./Profile.module.css";
 
 /* eslint-disable @next/next/no-img-element */
 
@@ -63,90 +65,92 @@ export function Profile() {
     .map(([name, count]) => ({ name, count, pct: Math.round((count / mMax) * 100), color: MOOD_META[name] || "#8a929e" }));
 
   return (
-    <div style={{ padding: "8px 18px 24px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: picking ? 14 : 22 }}>
-        <div onClick={openPicker} style={{ position: "relative", width: 62, height: 62, flex: "none", cursor: "pointer" }}>
-          <div style={{ width: 62, height: 62, borderRadius: "50%", overflow: "hidden", background: acc, display: "block" }}>
-            <img src={meP.avatar} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+    <div className={styles.screen}>
+      <div className={`${styles.header} flex items-center`} style={{ marginBottom: picking ? 14 : 22 }}>
+        <div onClick={openPicker} className={`${styles.avatarWrap} relative flex-none pointer`}>
+          <div className={`${styles.avatar} avatar-round`} style={{ background: acc }}>
+            <img src={meP.avatar} alt="" className="img-cover" />
           </div>
-          <span style={{ position: "absolute", bottom: -2, right: -2, width: 22, height: 22, borderRadius: "50%", background: "#12161c", boxShadow: "0 0 0 2px #0a0c0f", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#c6ccd4" }}>✎</span>
+          <span className={`${styles.editBadge} flex-center`}>✎</span>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 23, color: "#f3f5f8", letterSpacing: "-.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{meP.name}</div>
-          <div className="mono" style={{ fontSize: 11, color: "#8a929e", marginTop: 3 }}>member of the crew</div>
+        <div className="flex-1 minw-0">
+          <div className={`${styles.name} ${styles.ellipsis}`}>{meP.name}</div>
+          <div className={`${styles.memberLine} mono`}>member of the crew</div>
         </div>
-        <button onClick={switchProfile} style={{ flex: "none", padding: "0 14px", height: 38, borderRadius: 12, border: "1.5px solid rgba(255,255,255,.14)", background: "transparent", color: "#c6ccd4", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>Switch</button>
+        <button onClick={switchProfile} className={`${styles.switchBtn} flex-none pointer`}>Switch</button>
       </div>
 
       {/* avatar picker */}
-      {picking && (
-        <div style={{ borderRadius: 16, padding: 14, background: "#101822", boxShadow: `inset 0 0 0 1.5px ${acc}44`, marginBottom: 22, animation: "cnUp .25s ease both" }}>
-          <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
-            <span className="mono" style={{ flex: 1, fontSize: 10, color: "#8a929e", letterSpacing: "1.5px" }}>PICK A NEW LOOK</span>
-            <button onClick={() => setSeeds([meP.name, ...randomSeeds(meP.name, 7)])} style={{ padding: "6px 12px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,.14)", background: "transparent", color: "#c6ccd4", fontWeight: 700, fontSize: 11.5, cursor: "pointer", marginRight: 8 }}>↻ Shuffle</button>
-            <button onClick={() => setPicking(false)} style={{ padding: "6px 12px", borderRadius: 10, border: "none", background: "transparent", color: "#8a929e", fontWeight: 700, fontSize: 11.5, cursor: "pointer" }}>Close</button>
+      <RenderWhen.If isTrue={picking}>
+        <div className={styles.pickerPanel} style={{ boxShadow: `inset 0 0 0 1.5px ${acc}44` }}>
+          <div className={`${styles.pickerHead} flex items-center`}>
+            <span className={`${styles.pickerLabel} mono flex-1`}>PICK A NEW LOOK</span>
+            <button onClick={() => setSeeds([meP.name, ...randomSeeds(meP.name, 7)])} className={`${styles.shuffleBtn} pointer`}>↻ Shuffle</button>
+            <button onClick={() => setPicking(false)} className={`${styles.closeBtn} pointer`}>Close</button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+          <div className={styles.seedGrid}>
             {seeds.map((s) => (
-              <div key={s} onClick={() => pickSeed(s)} style={{ cursor: "pointer", opacity: savingSeed && savingSeed !== s ? 0.5 : 1 }}>
-                <div style={{ width: "100%", aspectRatio: "1", borderRadius: "50%", overflow: "hidden", background: "#12161c", boxShadow: savingSeed === s ? `0 0 0 2px ${acc}` : "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
-                  <img src={avatarUrl(s)} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+              <div key={s} onClick={() => pickSeed(s)} className="pointer" style={{ opacity: savingSeed && savingSeed !== s ? 0.5 : 1 }}>
+                <div className={`${styles.seedAvatar} avatar-round w-full`} style={{ boxShadow: savingSeed === s ? `0 0 0 2px ${acc}` : "inset 0 0 0 1px rgba(255,255,255,.08)" }}>
+                  <img src={avatarUrl(s)} alt="" className="img-cover" />
                 </div>
               </div>
             ))}
           </div>
         </div>
-      )}
+      </RenderWhen.If>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+      <div className={`${styles.statsRow} flex gap-10`}>
         {stats.map((s) => (
-          <div key={s.label} style={{ flex: 1, padding: "15px 10px", borderRadius: 15, textAlign: "center", background: "#12161c", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.05)" }}>
-            <div style={{ fontWeight: 800, fontSize: 24, color: s.color }}>{s.value}</div>
-            <div className="mono" style={{ fontSize: 9, color: "#8a929e", letterSpacing: ".5px", marginTop: 6 }}>{s.label}</div>
+          <div key={s.label} className={`${styles.statCard} flex-1 text-center`}>
+            <div className={styles.statValue} style={{ color: s.color }}>{s.value}</div>
+            <div className={`${styles.statLabel} mono`}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      <div className="mono" style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px", marginBottom: 13 }}>YOUR MOODS</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 26 }}>
+      <div className={`${styles.sectionLabel} mono`}>YOUR MOODS</div>
+      <div className={`${styles.moodList} flex-col gap-10`}>
         {moodStats.map((m) => (
           <div key={m.name}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}>
-              <span style={{ color: m.color, fontWeight: 700 }}>{m.name}</span>
-              <span className="mono" style={{ color: "#8a929e", fontSize: 11 }}>{m.count}</span>
+            <div className={`${styles.moodHead} flex justify-between`}>
+              <span className={styles.moodName} style={{ color: m.color }}>{m.name}</span>
+              <span className={`${styles.moodCount} mono`}>{m.count}</span>
             </div>
-            <div style={{ height: 7, borderRadius: 4, background: "#181c22", overflow: "hidden" }}>
-              <div style={{ height: "100%", width: m.pct + "%", borderRadius: 4, background: m.color }} />
+            <div className={`${styles.barTrack} overflow-hidden`}>
+              <div className={styles.barFill} style={{ width: m.pct + "%", background: m.color }} />
             </div>
           </div>
         ))}
       </div>
 
-      <div className="mono" style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px", marginBottom: 13 }}>YOUR LOGS</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className={`${styles.sectionLabel} mono`}>YOUR LOGS</div>
+      <div className="flex-col gap-10">
         {myWatches.map((x, idx) => {
           const mc = MOOD_META[x.w.mood] || "#8a929e";
           return (
-            <div key={idx} onClick={() => openDetail(x.e.id)} style={{ display: "flex", gap: 12, alignItems: "center", padding: 10, borderRadius: 14, background: "#12161c", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.05)", cursor: "pointer" }}>
-              <div style={{ width: 42, height: 56, borderRadius: 7, flex: "none", background: `linear-gradient(155deg,${x.e.c1},${x.e.c2})`, position: "relative", overflow: "hidden" }}>
-                {x.e.cover && <img src={x.e.cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+            <div key={idx} onClick={() => openDetail(x.e.id)} className={`${styles.logRow} flex items-center gap-12 pointer`}>
+              <div className={`${styles.logCover} flex-none relative overflow-hidden`} style={{ background: `linear-gradient(155deg,${x.e.c1},${x.e.c2})` }}>
+                <RenderWhen.If isTrue={!!x.e.cover}>
+                  <img src={x.e.cover} alt="" className="absolute-fill img-cover" />
+                </RenderWhen.If>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: "#f3f5f8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.e.title}</div>
-                <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
-                  <span style={{ padding: "3px 9px", borderRadius: 13, fontSize: 10.5, fontWeight: 700, background: moodBgOf(mc), color: mc }}>{x.w.mood}</span>
-                  {x.w.rewatch > 0 && (
-                    <span style={{ padding: "3px 9px", borderRadius: 13, fontSize: 10.5, fontWeight: 700, background: "rgba(255,255,255,.06)", color: "#c6ccd4" }}>↻ {rewatchLabel(x.w.rewatch)}</span>
-                  )}
+              <div className="flex-1 minw-0">
+                <div className={`${styles.logTitle} ${styles.ellipsis}`}>{x.e.title}</div>
+                <div className={`${styles.tagRow} flex gap-6`}>
+                  <span className={styles.pill} style={{ background: moodBgOf(mc), color: mc }}>{x.w.mood}</span>
+                  <RenderWhen.If isTrue={x.w.rewatch > 0}>
+                    <span className={styles.rewatchPill}>↻ {rewatchLabel(x.w.rewatch)}</span>
+                  </RenderWhen.If>
                 </div>
               </div>
-              <div style={{ flex: "none", color: acc, fontWeight: 800, fontSize: 15 }}>★ {x.w.rating.toFixed(1)}</div>
+              <div className={`${styles.logRating} flex-none`} style={{ color: acc }}>★ {x.w.rating.toFixed(1)}</div>
             </div>
           );
         })}
-        {myWatches.length === 0 && (
-          <div style={{ textAlign: "center", color: "#4a525d", fontSize: 13, padding: 24 }}>Nothing logged yet — tap + to add your first show.</div>
-        )}
+        <RenderWhen.If isTrue={myWatches.length === 0}>
+          <div className={`${styles.empty} text-center`}>Nothing logged yet — tap + to add your first show.</div>
+        </RenderWhen.If>
       </div>
     </div>
   );
