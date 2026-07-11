@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { WatchlistModel } from "@/models";
+import { and, eq } from "drizzle-orm";
+import { getDb, schema, newId, now } from "@/db";
 import { norm } from "@/lib/theme";
+import { isUniqueViolation } from "@/db/mappers";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/watchlist — save a show to the caller's watchlist (crew-visible).
-// Body: { user, title, anilistId?, cover?, year?, ep?, genres?, c1?, c2? }
+// Dedupe per user is the uq_watchlist DB constraint.
 export async function POST(req: NextRequest) {
   try {
     const b = await req.json();
@@ -14,14 +15,11 @@ export async function POST(req: NextRequest) {
     if (!b?.user || !title) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
-    await connectDB();
+    const db = await getDb();
     const normTitle = norm(title);
-    const existing = await WatchlistModel.findOne({ user: b.user, normTitle });
-    if (existing) {
-      return NextResponse.json({ ok: true, id: String(existing._id), already: true });
-    }
-    const doc = await WatchlistModel.create({
-      user: b.user,
+    const row = {
+      id: newId(),
+      userId: b.user,
       title,
       normTitle,
       status: b.status === "Watching" ? "Watching" : "Plan",
@@ -29,11 +27,25 @@ export async function POST(req: NextRequest) {
       cover: b.cover || "",
       year: b.year || "",
       ep: b.ep || "",
-      genres: (b.genres || []).slice(0, 3),
+      genres: JSON.stringify((b.genres || []).slice(0, 3)),
       c1: b.c1 || "#1a1e25",
       c2: b.c2 || "#141821",
-    });
-    return NextResponse.json({ ok: true, id: String(doc._id) });
+      createdAt: now(),
+    };
+    try {
+      await db.insert(schema.watchlist).values(row).run();
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        const existing = await db
+          .select()
+          .from(schema.watchlist)
+          .where(and(eq(schema.watchlist.userId, b.user), eq(schema.watchlist.normTitle, normTitle)))
+          .get();
+        return NextResponse.json({ ok: true, id: existing?.id || "", already: true });
+      }
+      throw err;
+    }
+    return NextResponse.json({ ok: true, id: row.id });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -48,13 +60,13 @@ export async function DELETE(req: NextRequest) {
     if (!id || !user) {
       return NextResponse.json({ error: "missing id/user" }, { status: 400 });
     }
-    await connectDB();
-    const doc = await WatchlistModel.findById(id);
+    const db = await getDb();
+    const doc = await db.select().from(schema.watchlist).where(eq(schema.watchlist.id, id)).get();
     if (!doc) return NextResponse.json({ ok: true, gone: true });
-    if (doc.user !== user) {
+    if (doc.userId !== user) {
       return NextResponse.json({ error: "not your watchlist item" }, { status: 403 });
     }
-    await doc.deleteOne();
+    await db.delete(schema.watchlist).where(eq(schema.watchlist.id, id)).run();
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
@@ -70,14 +82,13 @@ export async function PATCH(req: NextRequest) {
     if (!id || !user || !["Watching", "Plan"].includes(status)) {
       return NextResponse.json({ error: "missing/invalid fields" }, { status: 400 });
     }
-    await connectDB();
-    const doc = await WatchlistModel.findById(id);
+    const db = await getDb();
+    const doc = await db.select().from(schema.watchlist).where(eq(schema.watchlist.id, id)).get();
     if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
-    if (doc.user !== user) {
+    if (doc.userId !== user) {
       return NextResponse.json({ error: "not your watchlist item" }, { status: 403 });
     }
-    doc.status = status;
-    await doc.save();
+    await db.update(schema.watchlist).set({ status }).where(eq(schema.watchlist.id, id)).run();
     return NextResponse.json({ ok: true, status });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";

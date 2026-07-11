@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { AnimeModel, WatchlistModel } from "@/models";
+import { and, eq, or } from "drizzle-orm";
+import { getDb, schema, newId, now, Db } from "@/db";
 import { norm } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
@@ -8,14 +8,13 @@ export const dynamic = "force-dynamic";
 interface LogBody {
   user: string;
   title: string;
-  rating: number; // crew scale 0-10
+  rating: number; // 0-10 crew scale
   mood: string;
   platform: string;
   reflect?: string;
   momentTitle?: string;
   momentWhy?: string;
   rewatch?: number;
-  // metadata for a brand-new show (ignored when appending to an existing one)
   anilistId?: number | null;
   year?: string;
   ep?: string;
@@ -25,23 +24,34 @@ interface LogBody {
   cover?: string;
 }
 
-// POST /api/logs — add a watch. If the title already exists, append the take and
-// re-average; otherwise create a new show. Mirrors the prototype's submitAdd().
+/** Find an existing show — anilistId beats title matching. */
+async function findDup(db: Db, anilistId: number | null | undefined, title: string) {
+  if (anilistId != null) {
+    const byId = await db.select().from(schema.anime).where(eq(schema.anime.anilistId, anilistId)).get();
+    if (byId) return byId;
+  }
+  return await db.select().from(schema.anime).where(eq(schema.anime.normTitle, norm(title))).get() ?? null;
+}
+
+// POST /api/logs — add a watch. If the show already exists, append the take
+// (one take per user is a DB constraint); otherwise create the show.
 export async function POST(req: NextRequest) {
   try {
     const b: LogBody = await req.json();
     if (!b.user || !b.title || !b.rating || !b.mood || !b.platform) {
       return NextResponse.json({ error: "missing required fields" }, { status: 400 });
     }
-    await connectDB();
+    const db = await getDb();
 
     // Logging a show clears it from the logger's own watchlist (others keep theirs).
-    const wlOr: Record<string, unknown>[] = [{ normTitle: norm(b.title) }];
-    if (b.anilistId != null) wlOr.push({ anilistId: b.anilistId });
-    await WatchlistModel.deleteMany({ user: b.user, $or: wlOr });
+    const wlCond =
+      b.anilistId != null
+        ? or(eq(schema.watchlist.normTitle, norm(b.title)), eq(schema.watchlist.anilistId, b.anilistId))
+        : eq(schema.watchlist.normTitle, norm(b.title));
+    await db.delete(schema.watchlist).where(and(eq(schema.watchlist.userId, b.user), wlCond)).run();
 
-    const myWatch = {
-      user: b.user,
+    const watchRow = {
+      userId: b.user,
       rating: b.rating,
       mood: b.mood,
       platform: b.platform,
@@ -49,51 +59,52 @@ export async function POST(req: NextRequest) {
       momentTitle: b.momentTitle || "",
       momentWhy: b.momentWhy || "",
       rewatch: b.rewatch || 0,
+      at: now(),
     };
 
-    // dup match by anilistId first, then normalized title
-    const all = await AnimeModel.find().select("title cover watches anilistId").lean();
-    const dup = (all as { _id: unknown; title: string; anilistId?: number | null }[]).find(
-      (e) =>
-        (b.anilistId != null && e.anilistId != null && e.anilistId === b.anilistId) ||
-        norm(e.title) === norm(b.title)
-    );
-
+    const dup = await findDup(db, b.anilistId, b.title);
     if (dup) {
-      const dupDoc = await AnimeModel.findById(dup._id);
-      if (!dupDoc) return NextResponse.json({ error: "not found" }, { status: 404 });
-      if (dupDoc.watches.some((w: { user: string }) => w.user === b.user)) {
-        return NextResponse.json(
-          { ok: true, id: String(dupDoc._id), already: true, title: dupDoc.title },
-          { status: 200 }
-        );
+      const mine = await db
+        .select()
+        .from(schema.watches)
+        .where(and(eq(schema.watches.animeId, dup.id), eq(schema.watches.userId, b.user)))
+        .get();
+      if (mine) {
+        return NextResponse.json({ ok: true, id: dup.id, already: true, title: dup.title });
       }
-      dupDoc.watches.push(myWatch);
-      dupDoc.time = "now";
-      if (!dupDoc.cover && b.cover) dupDoc.cover = b.cover;
-      await dupDoc.save();
-      return NextResponse.json({ ok: true, id: String(dupDoc._id), appended: true, title: dupDoc.title });
+      await db.insert(schema.watches).values({ ...watchRow, animeId: dup.id }).run();
+      await db.update(schema.anime)
+        .set({ time: "now", updatedAt: now(), cover: dup.cover || b.cover || "" })
+        .where(eq(schema.anime.id, dup.id))
+        .run();
+      return NextResponse.json({ ok: true, id: dup.id, appended: true, title: dup.title });
     }
 
     if (!b.genres || b.genres.length === 0) {
       return NextResponse.json({ error: "pick at least one genre" }, { status: 400 });
     }
 
-    const created = await AnimeModel.create({
-      anilistId: b.anilistId ?? null,
-      title: b.title.trim(),
-      year: b.year || "—",
-      ep: b.ep || "—",
-      genres: b.genres.slice(0, 3),
-      c1: b.c1 || "#1a1e25",
-      c2: b.c2 || "#141821",
-      cover: b.cover || "",
-      time: "now",
-      emotesBase: {},
-      watches: [myWatch],
-      facts: [],
-    });
-    return NextResponse.json({ ok: true, id: String(created._id), created: true, title: created.title });
+    const animeId = newId();
+    await db.insert(schema.anime)
+      .values({
+        id: animeId,
+        anilistId: b.anilistId ?? null,
+        title: b.title.trim(),
+        normTitle: norm(b.title),
+        year: b.year || "—",
+        ep: b.ep || "—",
+        genres: JSON.stringify(b.genres.slice(0, 3)),
+        c1: b.c1 || "#1a1e25",
+        c2: b.c2 || "#141821",
+        cover: b.cover || "",
+        time: "now",
+        emotesBase: "{}",
+        createdAt: now(),
+        updatedAt: now(),
+      })
+      .run();
+    await db.insert(schema.watches).values({ ...watchRow, animeId }).run();
+    return NextResponse.json({ ok: true, id: animeId, created: true, title: b.title.trim() });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -120,23 +131,29 @@ export async function PATCH(req: NextRequest) {
     if (!b.animeId || !b.user) {
       return NextResponse.json({ error: "missing animeId/user" }, { status: 400 });
     }
-    await connectDB();
-    const doc = await AnimeModel.findById(b.animeId);
-    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
-    const watch = doc.watches.find((w: { user: string }) => w.user === b.user);
+    const db = await getDb();
+    const watch = await db
+      .select()
+      .from(schema.watches)
+      .where(and(eq(schema.watches.animeId, b.animeId), eq(schema.watches.userId, b.user)))
+      .get();
     if (!watch) {
       return NextResponse.json({ error: "you haven't logged this show" }, { status: 404 });
     }
-    if (typeof b.rating === "number" && b.rating > 0) watch.rating = b.rating;
-    if (typeof b.mood === "string" && b.mood) watch.mood = b.mood;
-    if (typeof b.platform === "string" && b.platform) watch.platform = b.platform;
-    if (typeof b.reflect === "string") watch.reflect = b.reflect.trim();
-    if (typeof b.momentTitle === "string") watch.momentTitle = b.momentTitle;
-    if (typeof b.momentWhy === "string") watch.momentWhy = b.momentWhy;
-    if (typeof b.rewatch === "number") watch.rewatch = Math.max(0, b.rewatch);
-    doc.markModified("watches");
-    await doc.save();
-    return NextResponse.json({ ok: true, id: String(doc._id) });
+
+    const updates: Partial<typeof watch> = {};
+    if (typeof b.rating === "number" && b.rating > 0) updates.rating = b.rating;
+    if (typeof b.mood === "string" && b.mood) updates.mood = b.mood;
+    if (typeof b.platform === "string" && b.platform) updates.platform = b.platform;
+    if (typeof b.reflect === "string") updates.reflect = b.reflect.trim();
+    if (typeof b.momentTitle === "string") updates.momentTitle = b.momentTitle;
+    if (typeof b.momentWhy === "string") updates.momentWhy = b.momentWhy;
+    if (typeof b.rewatch === "number") updates.rewatch = Math.max(0, b.rewatch);
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(schema.watches).set(updates).where(eq(schema.watches.id, watch.id)).run();
+    }
+    return NextResponse.json({ ok: true, id: b.animeId });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });

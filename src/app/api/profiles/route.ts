@@ -1,43 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { ProfileModel } from "@/models";
-import { profileToClient } from "@/lib/serialize";
+import { eq } from "drizzle-orm";
+import { getDb, schema, newId, now } from "@/db";
+import { profileToClient, isUniqueViolation } from "@/db/mappers";
 import { ACCENT } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
-async function nameTaken(name: string, excludeId?: string): Promise<boolean> {
-  const docs = await ProfileModel.find().select("name").lean();
-  const target = name.trim().toLowerCase();
-  return (docs as { _id: unknown; name: string }[]).some(
-    (p) => p.name.trim().toLowerCase() === target && String(p._id) !== excludeId
-  );
-}
+const NAME_TAKEN = "That name is already picked — try another.";
 
 // POST /api/profiles { name } — create a custom crew profile (avatar auto-generated).
+// Unique names are enforced by the DB (case-insensitive index on lower(name)).
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const name = (body?.name || "").trim();
     if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });
 
-    await connectDB();
-    if (await nameTaken(name)) {
-      return NextResponse.json(
-        { error: "That name is already picked — try another." },
-        { status: 409 }
-      );
-    }
-    const count = await ProfileModel.countDocuments();
-    const doc = await ProfileModel.create({
+    const db = await getDb();
+    const count = (await db.select().from(schema.profiles).all()).length;
+    const row = {
+      id: newId(),
       name,
       initial: name[0].toUpperCase(),
       color: ACCENT,
       avatarSeed: name,
-      custom: true,
-      order: count,
-    });
-    return NextResponse.json(profileToClient(doc));
+      custom: 1,
+      ord: count,
+      createdAt: now(),
+    };
+    try {
+      await db.insert(schema.profiles).values(row).run();
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        return NextResponse.json({ error: NAME_TAKEN }, { status: 409 });
+      }
+      throw err;
+    }
+    return NextResponse.json(profileToClient(row));
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -51,26 +50,30 @@ export async function PATCH(req: NextRequest) {
     const id = body?.id;
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    await connectDB();
-    const doc = await ProfileModel.findById(id);
-    if (!doc) return NextResponse.json({ error: "profile not found" }, { status: 404 });
+    const db = await getDb();
+    const existing = await db.select().from(schema.profiles).where(eq(schema.profiles.id, id)).get();
+    if (!existing) return NextResponse.json({ error: "profile not found" }, { status: 404 });
 
+    const updates: Partial<typeof existing> = {};
     if (typeof body.name === "string" && body.name.trim()) {
-      const name = body.name.trim();
-      if (await nameTaken(name, id)) {
-        return NextResponse.json(
-          { error: "That name is already picked — try another." },
-          { status: 409 }
-        );
-      }
-      doc.name = name;
-      doc.initial = name[0].toUpperCase();
+      const nm = body.name.trim();
+      updates.name = nm;
+      updates.initial = nm[0].toUpperCase();
     }
     if (typeof body.avatarSeed === "string" && body.avatarSeed.trim()) {
-      doc.avatarSeed = body.avatarSeed.trim();
+      updates.avatarSeed = body.avatarSeed.trim();
     }
-    await doc.save();
-    return NextResponse.json(profileToClient(doc));
+    if (Object.keys(updates).length > 0) {
+      try {
+        await db.update(schema.profiles).set(updates).where(eq(schema.profiles.id, id)).run();
+      } catch (err) {
+        if (isUniqueViolation(err)) {
+          return NextResponse.json({ error: NAME_TAKEN }, { status: 409 });
+        }
+        throw err;
+      }
+    }
+    return NextResponse.json(profileToClient({ ...existing, ...updates }));
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });

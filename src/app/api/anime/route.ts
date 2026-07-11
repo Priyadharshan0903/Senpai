@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import { AnimeModel } from "@/models";
+import { eq } from "drizzle-orm";
+import { getDb, schema, now } from "@/db";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +19,10 @@ export async function PATCH(req: NextRequest) {
     if (trimmed && !HTTP_URL.test(trimmed)) {
       return NextResponse.json({ error: "cover must be an http(s) image URL" }, { status: 400 });
     }
-    await connectDB();
-    const doc = await AnimeModel.findById(id);
+    const db = await getDb();
+    const doc = await db.select().from(schema.anime).where(eq(schema.anime.id, id)).get();
     if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
-    doc.cover = trimmed;
-    await doc.save();
+    await db.update(schema.anime).set({ cover: trimmed, updatedAt: now() }).where(eq(schema.anime.id, id)).run();
     return NextResponse.json({ ok: true, cover: trimmed });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";

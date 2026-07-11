@@ -76,9 +76,7 @@ export function SenpaiApp() {
         <Splash acc={acc}>
           <div style={{ fontWeight: 800, fontSize: 20, color: "#f3f5f8" }}>Can&apos;t reach the journal</div>
           <div style={{ fontSize: 13, color: "#8a929e", lineHeight: 1.5, maxWidth: 280 }}>
-            {error.includes("MONGODB_URI")
-              ? "MongoDB isn't configured yet — set MONGODB_URI in .env.local and restart."
-              : error}
+            {error}
           </div>
           <button onClick={refresh} style={{ padding: "12px 26px", borderRadius: 13, border: "none", cursor: "pointer", fontWeight: 800, fontSize: 14, background: acc, color: "#0a0c0f" }}>Retry</button>
         </Splash>
