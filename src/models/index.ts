@@ -62,6 +62,7 @@ const WatchlistSchema = new Schema(
     user: { type: String, required: true }, // profile id
     title: { type: String, required: true },
     normTitle: { type: String, required: true }, // for dedupe + auto-resolve on log
+    status: { type: String, enum: ["Watching", "Plan"], default: "Plan" },
     anilistId: { type: Number, default: null },
     cover: { type: String, default: "" },
     year: { type: String, default: "" },

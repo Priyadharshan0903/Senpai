@@ -6,7 +6,6 @@ import { CoverArt } from "@/components/CoverArt";
 import { Avatar, PlusIcon } from "@/components/bits";
 import { avg, buildEmotes, resolvePerson, MOOD_META, moodBgOf } from "@/lib/derive";
 import { GENRE_FILTERS } from "@/lib/theme";
-import { removeFromWatchlist } from "@/lib/api";
 
 /* eslint-disable @next/next/no-img-element */
 const COVER_H = 150; // compact density default
@@ -21,9 +20,6 @@ export function Feed() {
     setScreen,
     openDetail,
     reactEmote,
-    openAddWith,
-    refresh,
-    flash,
   } = useSenpai();
   if (!data) return null;
   const profiles = data.profiles;
@@ -32,21 +28,6 @@ export function Feed() {
   const filtered = data.entries.filter(
     (e) => genreFilter === "All" || e.genres.includes(genreFilter)
   );
-
-  const watchlist = data.watchlist.filter(
-    (w) => genreFilter === "All" || w.genres.includes(genreFilter)
-  );
-
-  const removeItem = async (id: string) => {
-    if (!me) return;
-    try {
-      await removeFromWatchlist(id, me);
-      await refresh();
-      flash("Removed from watchlist");
-    } catch (e) {
-      flash(e instanceof Error ? e.message : "could not remove");
-    }
-  };
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -85,72 +66,8 @@ export function Feed() {
         </div>
       </div>
 
-      {/* ===== scrollable middle: watchlist strip + genre chips + cards ===== */}
+      {/* ===== scrollable middle: genre chips + cards ===== */}
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: 24 }}>
-        {/* watchlist strip */}
-        {watchlist.length > 0 && (
-          <div style={{ paddingTop: 4, paddingBottom: 16 }}>
-            <div
-              className="mono"
-              style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px", padding: "0 18px", marginBottom: 10 }}
-            >
-              WATCHLIST · {watchlist.length}
-            </div>
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "0 18px 4px" }}>
-              {watchlist.map((w) => {
-                const wanter = resolvePerson(profiles, w.user);
-                const isMine = w.user === me;
-                const entry = w.entryId ? data.entries.find((e) => e.id === w.entryId) : null;
-                return (
-                  <div key={w.id} style={{ width: 104, flex: "none" }}>
-                    <div
-                      onClick={() => (entry ? openDetail(entry.id) : isMine ? openAddWith(w.title) : undefined)}
-                      style={{
-                        height: 140,
-                        borderRadius: 12,
-                        overflow: "hidden",
-                        background: `linear-gradient(155deg,${w.c1},${w.c2})`,
-                        position: "relative",
-                        boxShadow: "0 6px 16px rgba(0,0,0,.4)",
-                        cursor: entry || isMine ? "pointer" : "default",
-                      }}
-                    >
-                      <CoverArt src={w.cover} placeholder="no art yet" />
-                      {/* who wants it */}
-                      <span style={{ position: "absolute", left: 7, bottom: 7, width: 24, height: 24, borderRadius: "50%", overflow: "hidden", background: wanter.color, boxShadow: "0 0 0 2px rgba(8,10,13,.7)", display: "block" }}>
-                        <img src={wanter.avatar} alt="" style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
-                      </span>
-                      {/* crew already logged it → show avg */}
-                      {entry && (
-                        <div style={{ position: "absolute", top: 7, left: 7, display: "flex", alignItems: "center", gap: 3, padding: "3px 7px", borderRadius: 12, background: "rgba(8,10,13,.62)", backdropFilter: "blur(6px)", color: acc, fontWeight: 800, fontSize: 10 }}>
-                          <span style={{ fontSize: 9 }}>★</span>
-                          <span className="mono">{avg(entry).toFixed(1)}</span>
-                        </div>
-                      )}
-                      {/* remove — own items only */}
-                      {isMine && (
-                        <button
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            removeItem(w.id);
-                          }}
-                          style={{ position: "absolute", top: 7, right: 7, width: 22, height: 22, borderRadius: "50%", border: "none", cursor: "pointer", background: "rgba(8,10,13,.65)", color: "#c6ccd4", fontSize: 12, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: 12, color: "#e7eaef", marginTop: 7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{w.title}</div>
-                    <div style={{ fontSize: 10.5, color: "#8a929e", marginTop: 1 }}>
-                      {isMine ? (entry ? "on Senpai — tap to rate" : "tap to log it") : wanter.name + " wants to watch"}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* genre filters */}
         <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 18px 14px" }}>
           {GENRE_FILTERS.map((g) => {
@@ -231,9 +148,11 @@ export function Feed() {
                       {w0.mood}
                     </span>
                   </div>
-                  <div className="clamp2" style={{ fontSize: 14, lineHeight: 1.55, color: "#c6ccd4", marginBottom: 14 }}>
-                    {w0.reflect}
-                  </div>
+                  {w0.reflect.trim() && (
+                    <div className="clamp2" style={{ fontSize: 14, lineHeight: 1.55, color: "#c6ccd4", marginBottom: 14 }}>
+                      {w0.reflect}
+                    </div>
+                  )}
 
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

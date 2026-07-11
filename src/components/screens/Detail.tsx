@@ -6,7 +6,7 @@ import { CoverArt } from "@/components/CoverArt";
 import { Avatar, Stars, StarPicker } from "@/components/bits";
 import { avg, buildEmotes, resolvePerson, MOOD_META, moodBgOf } from "@/lib/derive";
 import { MOOD_LIST, PLATFORM_LIST, PLATFORM_META, rewatchLabel } from "@/lib/theme";
-import { postFact, confirmFact, postLog, editLog, addToWatchlist, removeFromWatchlist } from "@/lib/api";
+import { postFact, confirmFact, postLog, editLog, addToWatchlist, removeFromWatchlist, setCover } from "@/lib/api";
 
 const Label = ({ children }: { children: React.ReactNode }) => (
   <div className="mono" style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px" }}>
@@ -27,6 +27,8 @@ export function Detail() {
   const [editing, setEditing] = useState(false);
   const [factDraft, setFactDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [artOpen, setArtOpen] = useState(false);
+  const [artUrl, setArtUrl] = useState("");
 
   // fresh form whenever a different show opens
   useEffect(() => {
@@ -39,6 +41,8 @@ export function Detail() {
     setTakeMomentWhy("");
     setEditing(false);
     setFactDraft("");
+    setArtOpen(false);
+    setArtUrl("");
   }, [detailId]);
 
   const e = data?.entries.find((x) => x.id === detailId);
@@ -56,7 +60,7 @@ export function Detail() {
     setTakeRating(myWatch.rating / 2);
     setTakeMood(myWatch.mood);
     setTakePlatform(myWatch.platform);
-    setTakeReflect(myWatch.reflect === "(no thoughts added)" ? "" : myWatch.reflect);
+    setTakeReflect(myWatch.reflect);
     setTakeRewatch(myWatch.rewatch || 0);
     setTakeMomentTitle(myWatch.momentTitle || "");
     setTakeMomentWhy(myWatch.momentWhy || "");
@@ -99,6 +103,31 @@ export function Detail() {
       }
     } catch (err) {
       flash(err instanceof Error ? err.message : "could not update watchlist");
+    }
+  };
+
+  const saveArt = async () => {
+    const url = artUrl.trim();
+    if (!url) return;
+    try {
+      await setCover(e.id, url);
+      await refresh();
+      setArtOpen(false);
+      setArtUrl("");
+      flash("Background art updated");
+    } catch (err) {
+      flash(err instanceof Error ? err.message : "could not set art");
+    }
+  };
+
+  const removeArt = async () => {
+    try {
+      await setCover(e.id, "");
+      await refresh();
+      setArtOpen(false);
+      flash("Background art removed");
+    } catch (err) {
+      flash(err instanceof Error ? err.message : "could not remove art");
     }
   };
 
@@ -189,6 +218,13 @@ export function Detail() {
           <span>★</span>
           <span className="mono">{avg(e).toFixed(1)}</span>
         </div>
+        <button
+          onClick={() => { setArtOpen(!artOpen); setArtUrl(""); }}
+          title="Change background art"
+          style={{ position: "absolute", top: mine ? 54 : 100, right: 16, width: 38, height: 38, borderRadius: "50%", border: "none", cursor: "pointer", background: artOpen ? acc : "rgba(8,10,13,.55)", backdropFilter: "blur(6px)", color: artOpen ? "#0a0c0f" : "#fff", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3 }}
+        >
+          ✎
+        </button>
         <div style={{ position: "absolute", left: 20, right: 20, bottom: 18, pointerEvents: "none" }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 9 }}>
             {e.genres.map((g) => (
@@ -203,6 +239,28 @@ export function Detail() {
       </div>
 
       <div style={{ padding: "16px 16px 40px" }}>
+        {/* background art editor */}
+        {artOpen && (
+          <div style={{ borderRadius: 16, padding: 14, background: "#101822", boxShadow: `inset 0 0 0 1.5px ${acc}44`, marginBottom: 16, animation: "cnUp .25s ease both" }}>
+            <div className="mono" style={{ fontSize: 10, color: "#8a929e", letterSpacing: "1.5px", marginBottom: 10 }}>BACKGROUND ART</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 6px 6px 13px", borderRadius: 13, background: "#0c0f14", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.08)", marginBottom: 10 }}>
+              <input
+                value={artUrl}
+                onChange={(ev) => setArtUrl(ev.target.value)}
+                onKeyDown={(ev) => ev.key === "Enter" && saveArt()}
+                placeholder="paste an image URL for the cover..."
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 13 }}
+              />
+              <button onClick={saveArt} style={{ padding: "9px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, background: artUrl.trim() ? acc : "#181c22", color: artUrl.trim() ? "#0a0c0f" : "#5a636f" }}>Set</button>
+            </div>
+            {e.cover && (
+              <button onClick={removeArt} style={{ width: "100%", padding: 11, borderRadius: 12, border: "1.5px solid rgba(255,107,97,.35)", cursor: "pointer", fontWeight: 700, fontSize: 12.5, background: "transparent", color: "#ff6f61" }}>
+                Remove current art — fall back to the gradient
+              </button>
+            )}
+          </div>
+        )}
+
         {/* rating summary */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 16px", borderRadius: 16, background: "#12161c", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.05)", marginBottom: 20 }}>
           <div style={{ textAlign: "center" }}>
@@ -252,7 +310,11 @@ export function Detail() {
                     <div className="mono" style={{ fontSize: 11, fontWeight: 700, color: acc, marginTop: 3 }}>{w.rating.toFixed(1)}</div>
                   </div>
                 </div>
-                <div style={{ fontSize: 13.5, lineHeight: 1.55, color: "#c6ccd4" }}>{w.reflect}</div>
+                {w.reflect.trim() ? (
+                  <div style={{ fontSize: 13.5, lineHeight: 1.55, color: "#c6ccd4" }}>{w.reflect}</div>
+                ) : (
+                  <div style={{ fontSize: 12.5, fontStyle: "italic", color: "#5a636f" }}>Logged — no written note.</div>
+                )}
                 {w.momentTitle && (
                   <div style={{ marginTop: 11, borderRadius: 11, padding: "11px 13px", background: "#0c0f14" }}>
                     <div className="mono" style={{ fontSize: 9.5, color: acc, letterSpacing: "1px", marginBottom: 4 }}>◆ {w.momentTitle}</div>

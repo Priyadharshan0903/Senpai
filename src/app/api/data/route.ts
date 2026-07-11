@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
         user: string;
         title: string;
         normTitle: string;
+        status?: string;
         anilistId?: number | null;
         cover?: string;
         year?: string;
@@ -53,6 +54,7 @@ export async function GET(req: NextRequest) {
       id: String(w._id),
       user: w.user,
       title: w.title,
+      status: (w.status === "Watching" ? "Watching" : "Plan") as "Watching" | "Plan",
       anilistId: w.anilistId ?? null,
       cover: w.cover || "",
       year: w.year || "",

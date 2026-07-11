@@ -27,8 +27,8 @@ export async function createProfile(name: string) {
   );
 }
 
-export interface SearchResult {
-  found: boolean;
+export interface SearchCandidate {
+  anilistId: number | null;
   title: string;
   cover: string;
   c1: string;
@@ -36,7 +36,12 @@ export interface SearchResult {
   year: string;
   ep: string;
   genres: string[];
+}
+
+export interface SearchResult extends SearchCandidate {
+  found: boolean;
   matchLabel: string;
+  candidates: SearchCandidate[];
 }
 
 export async function searchAnime(q: string): Promise<SearchResult> {
@@ -105,6 +110,7 @@ export async function confirmFact(animeId: string, factId: string, user: string)
 export interface WatchlistPayload {
   user: string;
   title: string;
+  status?: "Watching" | "Plan";
   anilistId?: number | null;
   cover?: string;
   year?: string;
@@ -161,6 +167,26 @@ export async function updateProfile(payload: { id: string; avatarSeed?: string; 
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+    })
+  );
+}
+
+export async function setWatchlistStatus(id: string, user: string, status: "Watching" | "Plan") {
+  return j<{ ok: boolean; status: string }>(
+    await fetch("/api/watchlist", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, user, status }),
+    })
+  );
+}
+
+export async function setCover(id: string, cover: string) {
+  return j<{ ok: boolean; cover: string }>(
+    await fetch("/api/anime", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, cover }),
     })
   );
 }

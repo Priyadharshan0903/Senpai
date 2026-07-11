@@ -51,6 +51,7 @@ export interface WatchlistItem {
   id: string;
   user: string; // profile id
   title: string;
+  status: "Watching" | "Plan";
   anilistId?: number | null;
   cover: string;
   year: string;

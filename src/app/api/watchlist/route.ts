@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       user: b.user,
       title,
       normTitle,
+      status: b.status === "Watching" ? "Watching" : "Plan",
       anilistId: b.anilistId ?? null,
       cover: b.cover || "",
       year: b.year || "",
@@ -55,6 +56,29 @@ export async function DELETE(req: NextRequest) {
     }
     await doc.deleteOne();
     return NextResponse.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+// PATCH /api/watchlist { id, user, status } — flip an item between
+// "Watching" and "Plan" (only your own items).
+export async function PATCH(req: NextRequest) {
+  try {
+    const { id, user, status } = await req.json();
+    if (!id || !user || !["Watching", "Plan"].includes(status)) {
+      return NextResponse.json({ error: "missing/invalid fields" }, { status: 400 });
+    }
+    await connectDB();
+    const doc = await WatchlistModel.findById(id);
+    if (!doc) return NextResponse.json({ error: "not found" }, { status: 404 });
+    if (doc.user !== user) {
+      return NextResponse.json({ error: "not your watchlist item" }, { status: 403 });
+    }
+    doc.status = status;
+    await doc.save();
+    return NextResponse.json({ ok: true, status });
   } catch (err) {
     const message = err instanceof Error ? err.message : "error";
     return NextResponse.json({ error: message }, { status: 500 });

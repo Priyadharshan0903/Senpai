@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useSenpai } from "@/store";
 import { CoverArt } from "@/components/CoverArt";
 import { StarPicker } from "@/components/bits";
-import { searchAnime, postLog, addToWatchlist, SearchResult } from "@/lib/api";
+import { searchAnime, postLog, addToWatchlist, SearchResult, SearchCandidate } from "@/lib/api";
 import { norm, MOOD_LIST, MOOD_META, PLATFORM_LIST, PLATFORM_META, GENRE_LIST } from "@/lib/theme";
 
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -14,7 +14,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 );
 
 export function Add() {
-  const { acc, data, me, setScreen, openDetail, refresh, flash, consumeAddPrefill } = useSenpai();
+  const { acc, data, me, setScreen, openDetail, refresh, flash, consumeAddPrefill, setWlUsers } = useSenpai();
 
   const [title, setTitle] = useState("");
   const [finding, setFinding] = useState(false);
@@ -29,6 +29,8 @@ export function Add() {
   const [momentTitle, setMomentTitle] = useState("");
   const [momentWhy, setMomentWhy] = useState("");
   const [busy, setBusy] = useState(false);
+  const [addStatus, setAddStatus] = useState<"Watched" | "Watching" | "Plan to watch">("Watched");
+  const [candidates, setCandidates] = useState<SearchCandidate[]>([]);
 
   const isDup = !!dupId;
 
@@ -52,17 +54,22 @@ export function Add() {
           ep: dup.ep,
           genres: dup.genres.slice(),
           matchLabel: "ALREADY ON SENPAI",
+          anilistId: null,
+          candidates: [],
         });
         setTitle(dup.title);
+        setCandidates([]);
         return;
       }
       const res = await searchAnime(t);
       setFinding(false);
       setFound(res);
+      setCandidates(res.candidates || []);
       if (res.title) setTitle(res.title);
     } catch {
       setFinding(false);
-      setFound({ found: true, title: t, cover: "", c1: "#1a1e25", c2: "#141821", year: "", ep: "", genres: [], matchLabel: "NO MATCH — DROP YOUR OWN" });
+      setFound({ found: true, title: t, cover: "", c1: "#1a1e25", c2: "#141821", year: "", ep: "", genres: [], matchLabel: "NO MATCH — DROP YOUR OWN", anilistId: null, candidates: [] });
+      setCandidates([]);
     }
   };
 
@@ -76,33 +83,56 @@ export function Add() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const ready = !!found && rating > 0 && !!mood && !!platform && (isDup || genres.length > 0);
+  const pickCandidate = (c: SearchCandidate) => {
+    // check if the picked show is already on Senpai
+    const dup = data?.entries.find((e) => norm(e.title) === norm(c.title)) || null;
+    setDupId(dup ? dup.id : null);
+    setFound({
+      found: true,
+      ...c,
+      matchLabel: dup ? "ALREADY ON SENPAI" : c.cover ? "ARTWORK FOUND" : "NO MATCH — DROP YOUR OWN",
+      candidates,
+    });
+    setTitle(c.title);
+  };
+
+  const watched = addStatus === "Watched";
+  const ready0 = !!found && rating > 0 && !!mood && !!platform && (isDup || genres.length > 0);
+  const ready = watched ? ready0 : !!found && (isDup || genres.length > 0);
   const meta = [found?.year, found?.ep].filter(Boolean).join(" · ") || "metadata unavailable";
   const matchLabel = isDup ? "ALREADY ON SENPAI" : found?.cover ? "ARTWORK FOUND" : "NO MATCH — DROP YOUR OWN";
 
-  const saveForLater = async () => {
-    if (!me || !found) return;
-    try {
-      const res = await addToWatchlist({
-        user: me,
-        title: found.title,
-        cover: found.cover,
-        year: found.year,
-        ep: found.ep,
-        genres: found.genres,
-        c1: found.c1,
-        c2: found.c2,
-      });
-      await refresh();
-      flash(res.already ? "Already on your watchlist" : "Saved to your watchlist");
-      setScreen("feed");
-    } catch (e) {
-      flash(e instanceof Error ? e.message : "could not save");
-    }
-  };
-
   const submit = async () => {
     if (!me || !found) return;
+    if (!watched) {
+      // Watching / Plan to watch → goes to the watchlist, not the feed
+      if (!isDup && genres.length === 0) {
+        flash("pick at least one genre");
+        return;
+      }
+      setBusy(true);
+      try {
+        const res = await addToWatchlist({
+          user: me,
+          title: found.title,
+          status: addStatus === "Watching" ? "Watching" : "Plan",
+          cover: found.cover,
+          year: found.year,
+          ep: found.ep,
+          genres: (isDup ? found.genres : genres).slice(0, 3),
+          c1: found.c1,
+          c2: found.c2,
+        });
+        await refresh();
+        flash(res.already ? "Already on your watchlist" : "Added to your watchlist");
+        setWlUsers([me]);
+        setScreen("watchlist");
+      } catch (e) {
+        flash(e instanceof Error ? e.message : "could not save");
+        setBusy(false);
+      }
+      return;
+    }
     if (rating <= 0 || !mood || !platform) {
       flash("add rating, mood & platform");
       return;
@@ -212,6 +242,39 @@ export function Add() {
             </div>
           </div>
 
+          {/* did-you-mean candidates */}
+          {candidates.length > 1 && (
+            <div style={{ marginBottom: 20 }}>
+              <Label>NOT IT? PICK THE RIGHT ONE</Label>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4 }}>
+                {candidates.map((c) => {
+                  const sel = found?.title === c.title;
+                  return (
+                    <div key={c.anilistId ?? c.title} onClick={() => pickCandidate(c)} style={{ width: 84, flex: "none", cursor: "pointer" }}>
+                      <div style={{ height: 112, borderRadius: 9, overflow: "hidden", background: `linear-gradient(155deg,${c.c1},${c.c2})`, position: "relative", boxShadow: sel ? `0 0 0 2px ${acc}` : "0 4px 12px rgba(0,0,0,.4)" }}>
+                        {c.cover && <img src={c.cover} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />}
+                      </div>
+                      <div style={{ fontWeight: 600, fontSize: 10.5, color: sel ? "#f3f5f8" : "#8a929e", marginTop: 6, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{c.title}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <Label>STATUS</Label>
+          <div style={{ display: "flex", background: "#12161c", borderRadius: 13, padding: 3, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.06)", marginBottom: 22 }}>
+            {(["Watched", "Watching", "Plan to watch"] as const).map((st) => (
+              <button
+                key={st}
+                onClick={() => setAddStatus(st)}
+                style={{ flex: 1, padding: "9px 4px", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11.5, background: addStatus === st ? acc : "transparent", color: addStatus === st ? "#0a0c0f" : "#9aa3af", whiteSpace: "nowrap" }}
+              >
+                {st === "Plan to watch" ? "Plan" : st}
+              </button>
+            ))}
+          </div>
+
           <Label>WHERE DID YOU WATCH IT?</Label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
             {PLATFORM_LIST.map((p) => {
@@ -222,6 +285,8 @@ export function Add() {
             })}
           </div>
 
+          {watched && (
+          <>
           <Label>YOUR RATING</Label>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22 }}>
             <StarPicker value={rating} onPick={setRating} acc={acc} size={32} />
@@ -244,6 +309,8 @@ export function Add() {
               );
             })}
           </div>
+          </>
+          )}
 
           {!isDup && (
             <>
@@ -266,11 +333,13 @@ export function Add() {
             </>
           )}
 
-          <Label>YOUR THOUGHTS</Label>
+          {watched && (
+          <>
+          <Label>YOUR THOUGHTS <span style={{ color: "#5a636f" }}>· optional</span></Label>
           <textarea
             value={reflect}
             onChange={(e) => setReflect(e.target.value)}
-            placeholder="what did you feel watching it? no wrong answers..."
+            placeholder="optional — skip this if you just want to log that you watched it"
             style={{ width: "100%", height: 88, padding: 14, borderRadius: 14, background: "#12161c", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.09)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 14, lineHeight: 1.5, marginBottom: 22 }}
           />
 
@@ -289,21 +358,23 @@ export function Add() {
             placeholder="why did it hit so hard?"
             style={{ width: "100%", height: 66, padding: "13px 14px", borderRadius: 12, background: "#12161c", border: "none", outline: "none", boxShadow: "inset 0 0 0 1.5px rgba(255,255,255,.09)", color: "#f3f5f8", fontFamily: "var(--font-jakarta)", fontSize: 14, lineHeight: 1.5, marginBottom: 24 }}
           />
+          </>
+          )}
 
           <button
             onClick={submit}
             disabled={busy}
             style={{ width: "100%", padding: 16, borderRadius: 15, border: "none", cursor: "pointer", fontWeight: 800, fontSize: 16, background: ready ? acc : "#181c22", color: ready ? "#0a0c0f" : "#5a636f", opacity: busy ? 0.7 : 1 }}
           >
-            {ready ? (isDup ? "Add my take to this show" : "Log it to the feed") : "Fill rating, mood & platform"}
-          </button>
-
-          {/* haven't watched it yet? park it on the watchlist instead */}
-          <button
-            onClick={saveForLater}
-            style={{ width: "100%", marginTop: 10, padding: 14, borderRadius: 15, border: "1.5px solid rgba(255,255,255,.14)", cursor: "pointer", fontWeight: 700, fontSize: 14, background: "transparent", color: "#c6ccd4" }}
-          >
-            ◇ Haven&apos;t watched yet — save for later
+            {!watched
+              ? ready
+                ? "Add to " + (addStatus === "Watching" ? "Currently watching" : "Plan to watch")
+                : "Search a show & pick a genre"
+              : ready
+              ? isDup
+                ? "Add my take to this show"
+                : "Log it to the feed"
+              : "Fill rating, mood & platform"}
           </button>
         </div>
       )}

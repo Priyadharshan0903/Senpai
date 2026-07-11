@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       rating: b.rating,
       mood: b.mood,
       platform: b.platform,
-      reflect: b.reflect || "(no thoughts added)",
+      reflect: (b.reflect || "").trim(),
       momentTitle: b.momentTitle || "",
       momentWhy: b.momentWhy || "",
       rewatch: b.rewatch || 0,
@@ -126,7 +126,7 @@ export async function PATCH(req: NextRequest) {
     if (typeof b.rating === "number" && b.rating > 0) watch.rating = b.rating;
     if (typeof b.mood === "string" && b.mood) watch.mood = b.mood;
     if (typeof b.platform === "string" && b.platform) watch.platform = b.platform;
-    if (typeof b.reflect === "string") watch.reflect = b.reflect || "(no thoughts added)";
+    if (typeof b.reflect === "string") watch.reflect = b.reflect.trim();
     if (typeof b.momentTitle === "string") watch.momentTitle = b.momentTitle;
     if (typeof b.momentWhy === "string") watch.momentWhy = b.momentWhy;
     if (typeof b.rewatch === "number") watch.rewatch = Math.max(0, b.rewatch);

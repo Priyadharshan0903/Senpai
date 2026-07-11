@@ -13,7 +13,7 @@ import { getData, toggleEmote } from "@/lib/api";
 import { ACCENT } from "@/lib/theme";
 
 export type Stage = "pick" | "add" | "app";
-export type Screen = "feed" | "ranked" | "platforms" | "add" | "profile";
+export type Screen = "feed" | "ranked" | "watchlist" | "friends" | "platforms" | "add" | "profile";
 
 interface SenpaiCtx {
   acc: string;
@@ -27,6 +27,7 @@ interface SenpaiCtx {
   genreFilter: string;
   toast: string;
   addPrefill: string | null;
+  wlUsers: string[] | null; // watchlist screen: whose lists are shown (null = just me)
 
   refresh: () => Promise<void>;
   selectProfile: (id: string) => void;
@@ -42,6 +43,9 @@ interface SenpaiCtx {
   /** Jump to the Add screen with a title pre-filled (auto-searches). */
   openAddWith: (title: string) => void;
   consumeAddPrefill: () => string | null;
+  setWlUsers: (ids: string[] | null) => void;
+  /** Open the Watchlist screen focused on one crew member's list. */
+  viewUserList: (id: string) => void;
 }
 
 const Ctx = createContext<SenpaiCtx | null>(null);
@@ -60,6 +64,7 @@ export function SenpaiProvider({ children }: { children: React.ReactNode }) {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addPrefillRef = useRef<string | null>(null);
   const [addPrefill, setAddPrefill] = useState<string | null>(null);
+  const [wlUsers, setWlUsers] = useState<string[] | null>(null);
 
   const refresh = useCallback(async () => {
     const stored = typeof window !== "undefined" ? localStorage.getItem(ME_KEY) : null;
@@ -111,6 +116,7 @@ export function SenpaiProvider({ children }: { children: React.ReactNode }) {
     genreFilter,
     toast,
     addPrefill,
+    wlUsers,
     refresh,
     selectProfile: (id) => enterApp(id),
     openAddProfile: () => setStage("add"),
@@ -167,6 +173,12 @@ export function SenpaiProvider({ children }: { children: React.ReactNode }) {
       addPrefillRef.current = null;
       if (t) setAddPrefill(null);
       return t;
+    },
+    setWlUsers,
+    viewUserList: (id) => {
+      setWlUsers([id]);
+      setDetailId(null);
+      setScreenState("watchlist");
     },
   };
 

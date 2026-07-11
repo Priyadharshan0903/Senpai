@@ -7,7 +7,8 @@ import { Picker } from "@/components/screens/Picker";
 import { AddProfile } from "@/components/screens/AddProfile";
 import { Feed } from "@/components/screens/Feed";
 import { Ranked } from "@/components/screens/Ranked";
-import { Platforms } from "@/components/screens/Platforms";
+import { Watchlist } from "@/components/screens/Watchlist";
+import { Friends } from "@/components/screens/Friends";
 import { Profile } from "@/components/screens/Profile";
 import { Add } from "@/components/screens/Add";
 import { Detail } from "@/components/screens/Detail";
@@ -116,7 +117,8 @@ export function SenpaiApp() {
               >
                 {screen === "feed" && <Feed />}
                 {screen === "ranked" && <Ranked />}
-                {screen === "platforms" && <Platforms />}
+                {screen === "watchlist" && <Watchlist />}
+                {screen === "friends" && <Friends />}
                 {screen === "add" && <Add />}
                 {screen === "profile" && <Profile />}
               </div>

@@ -24,24 +24,23 @@ const items: { key: Screen; label: string; icon: (c: string) => React.ReactNode 
     ),
   },
   {
-    key: "platforms",
-    label: "Platforms",
+    key: "watchlist",
+    label: "Watchlist",
     icon: (c) => (
       <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1.5" />
-        <rect x="14" y="3" width="7" height="7" rx="1.5" />
-        <rect x="3" y="14" width="7" height="7" rx="1.5" />
-        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z" />
       </svg>
     ),
   },
   {
-    key: "profile",
-    label: "Profile",
+    key: "friends",
+    label: "Friends",
     icon: (c) => (
       <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+        <circle cx="9" cy="8" r="3.2" />
+        <path d="M3.5 20c0-3.2 2.5-5.2 5.5-5.2s5.5 2 5.5 5.2" />
+        <circle cx="17.6" cy="9" r="2.5" />
+        <path d="M16.2 15c2.7.1 4.6 2.1 4.6 5" />
       </svg>
     ),
   },
