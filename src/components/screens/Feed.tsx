@@ -68,7 +68,7 @@ export function Feed() {
       </div>
 
       {/* ===== scrollable middle: genre chips + cards ===== */}
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: 24 }}>
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: 24, WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
         {/* genre filters */}
         <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 18px 14px" }}>
           {GENRE_FILTERS.map((g) => {

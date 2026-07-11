@@ -205,7 +205,7 @@ export function Detail() {
   };
 
   return (
-    <div style={{ position: "absolute", inset: 0, zIndex: 70, background: "#0a0c0f", overflowY: "auto", animation: "cnSlide .28s cubic-bezier(.2,.8,.2,1)" }}>
+    <div style={{ position: "absolute", inset: 0, zIndex: 70, background: "#0a0c0f", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", animation: "cnSlide .28s cubic-bezier(.2,.8,.2,1)" }}>
       {/* hero */}
       <div style={{ position: "relative", height: 280, background: `linear-gradient(155deg,${e.c1},${e.c2})` }}>
         <CoverArt src={e.cover} />

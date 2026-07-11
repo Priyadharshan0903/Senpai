@@ -7,7 +7,7 @@
  *  - static assets (_next/static, fonts, icons): cache-first
  *  - other API POSTs:        network only (never cached)
  */
-const VERSION = "senpai-v1";
+const VERSION = "senpai-v2";
 const SHELL_CACHE = VERSION + "-shell";
 const DATA_CACHE = VERSION + "-data";
 const IMG_CACHE = VERSION + "-img";

@@ -8,6 +8,9 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  /* stop iOS from rubber-banding the document instead of inner scrollers */
+  overscroll-behavior: none;
 }
 
 body {

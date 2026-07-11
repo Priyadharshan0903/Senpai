@@ -55,12 +55,11 @@ export function BottomNav() {
         bottom: 0,
         left: 0,
         right: 0,
-        height: 80,
         zIndex: 65,
         display: "grid",
         gridTemplateColumns: "repeat(4,1fr)",
         alignItems: "start",
-        padding: "14px 8px 0",
+        padding: "10px 8px calc(8px + env(safe-area-inset-bottom, 0px))",
         background: "linear-gradient(0deg,#0a0c0f 74%,transparent)",
         borderTop: "1px solid rgba(255,255,255,.05)",
       }}

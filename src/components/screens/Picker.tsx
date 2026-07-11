@@ -17,6 +17,8 @@ export function Picker() {
         zIndex: 80,
         background: "radial-gradient(120% 70% at 50% 0%, #16202b 0%, #0a0c0f 55%)",
         overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        overscrollBehavior: "contain",
         animation: "cnFade .3s ease",
       }}
     >
